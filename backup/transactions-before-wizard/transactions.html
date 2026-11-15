@@ -1,0 +1,401 @@
+<div class="transactions-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">MONEY MANAGEMENT</span>
+      <h1>Transactions</h1>
+      <p>Track and manage your income and expenses.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openForm()">
+      <span>＋</span> Add Transaction
+    </button>
+  </div>
+
+  <div class="overview-cards">
+    <div class="overview-card">
+      <div class="overview-label">↗ Total Income</div>
+      <strong class="income-value">
+        {{ totalIncome() | currency:'INR':'symbol':'1.0-2':'en-IN' }}
+      </strong>
+      <small>All recorded income</small>
+    </div>
+
+    <div class="overview-card">
+      <div class="overview-label">↙ Total Expenses</div>
+      <strong class="expense-value">
+        {{ totalExpenses() | currency:'INR':'symbol':'1.0-2':'en-IN' }}
+      </strong>
+      <small>All recorded expenses</small>
+    </div>
+
+    <div class="overview-card">
+      <div class="overview-label">▤ Transactions</div>
+      <strong>{{ transactions().length }}</strong>
+      <small>Total recorded entries</small>
+    </div>
+  </div>
+
+  <section class="transaction-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Transaction History</h2>
+        <p>Your complete financial activity</p>
+      </div>
+      <span class="record-count">{{ filteredTransactions().length }} records</span>
+    </div>
+
+    <div class="filters">
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Search by category..."
+        [(ngModel)]="searchTerm"
+        aria-label="Search transactions">
+
+      <select [(ngModel)]="selectedFilter" aria-label="Filter transactions">
+        <option value="all">All Transactions</option>
+        <option value="income">Income</option>
+        <option value="expense">Expenses</option>
+      </select>
+    </div>
+
+    @if (filteredTransactions().length > 0) {
+      <div class="transaction-table">
+        <div class="table-header">
+          <span>CATEGORY</span>
+          <span>TYPE</span>
+          <span>DATE</span>
+          <span>AMOUNT</span>
+          <span></span>
+        </div>
+
+        @for (item of filteredTransactions(); track item.id) {
+          <div
+            class="transaction-row"
+            [class.editable-transaction]="isCustomTransaction(item)"
+            [attr.role]="isCustomTransaction(item) ? 'button' : null"
+            [attr.tabindex]="isCustomTransaction(item) ? 0 : null"
+            (click)="isCustomTransaction(item) && openEditTransaction(item)"
+            (keydown.enter)="isCustomTransaction(item) && openEditTransaction(item)"
+            (keydown.space)="isCustomTransaction(item) && openEditTransaction(item); $event.preventDefault()">
+            <div class="category-name">
+              <span class="category-icon">
+                {{ categoryIcons[item.category] || '✦' }}
+              </span>
+              <strong>{{ item.category }}</strong>
+            </div>
+
+            <span class="type-label" [class.income-value]="item.type === 'income'"
+              [class.expense-value]="item.type === 'expense'">
+              {{ item.type === 'income' ? 'Income' : 'Expense' }}
+            </span>
+
+            <span class="date-cell">{{ formatDate(item.date) }}</span>
+
+            <strong class="amount-cell"
+              [class.income-value]="item.type === 'income'"
+              [class.expense-value]="item.type === 'expense'">
+              {{ formatAmount(item.amount, item.type) }}
+            </strong>
+
+            @if (isCustomTransaction(item)) {
+              <button
+                type="button"
+                class="delete-button"
+                aria-label="Delete transaction"
+                (click)="$event.stopPropagation(); deleteTransaction(item.id)">
+                ×
+              </button>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">↔</div>
+        <h3>No transactions yet</h3>
+        <p>Your income and expenses will appear here once you add them.</p>
+        <button type="button" class="secondary-button" (click)="openForm()">
+          Add your first transaction
+        </button>
+      </div>
+    }
+  </section>
+
+  @if (showForm) {
+    <div class="modal-backdrop" (click)="closeForm()">
+      <section
+        class="transaction-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transaction-title"
+        (click)="$event.stopPropagation()">
+
+        <div class="modal-heading">
+          <div>
+            <span class="eyebrow">MONEY MANAGEMENT</span>
+            <h2 id="transaction-title">{{ editingTransactionId ? "Edit Transaction" : "Add Transaction" }}</h2>
+            <p>{{ editingTransactionId ? "Update the details of this transaction." : "Choose a category and enter the transaction amount." }}</p>
+          </div>
+
+          <button type="button" class="modal-close" (click)="closeForm()">×</button>
+        </div>
+
+        <div class="type-selector">
+          <button
+            type="button"
+            [class.active]="type === 'income'"
+            (click)="changeType('income')">
+            <span>↗</span> Income
+          </button>
+
+          <button
+            type="button"
+            [class.active]="type === 'expense'"
+            (click)="changeType('expense')">
+            <span>↙</span> Expense
+          </button>
+        </div>
+
+        <div class="category-heading">
+          <div>
+            <h3>Choose {{ type === 'income' ? 'income' : 'expense' }} category</h3>
+            <p>Select one category for this transaction.</p>
+          </div>
+          <span>{{ availableCategories.length }} categories</span>
+        </div>
+
+        <div class="category-grid">
+          @for (category of availableCategories; track category) {
+            <div
+              class="category-option"
+              [class.selected]="selectedCategory === category"
+              role="button"
+              tabindex="0"
+              (click)="selectCategory(category)"
+              (keydown.enter)="selectCategory(category)"
+              (keydown.space)="selectCategory(category); $event.preventDefault()">
+
+              <span class="category-option-icon">
+                {{ categoryIcons[category] || '✦' }}
+              </span>
+
+              <span>{{ category }}</span>
+
+              @if (selectedCategory === category && !isCustomCategory(category)) {
+                <span class="selected-check">✓</span>
+              }
+
+              @if (isCustomCategory(category)) {
+                <button
+                  type="button"
+                  class="category-edit-button"
+                  aria-label="Edit custom category"
+                  title="Edit category"
+                  (click)="$event.stopPropagation(); openEditCategory(category)">
+                  ✎
+                </button>
+              }
+            </div>
+          }
+
+          <button
+            type="button"
+            class="category-option custom-option"
+            (click)="openCustomCategory()">
+            <span class="category-option-icon">＋</span>
+            <span>Custom</span>
+          </button>
+        </div>
+
+        @if (showCustomCategory) {
+          <div class="custom-category-panel">
+            <div class="custom-category-heading">
+              <div>
+                <strong>Add custom {{ type }} category</strong>
+                <p>Create a category you can reuse later.</p>
+              </div>
+
+              <button
+                type="button"
+                class="custom-category-close"
+                aria-label="Close custom category form"
+                (click)="closeCustomCategory()">
+                ×
+              </button>
+            </div>
+
+            <input
+              class="custom-category-input"
+              type="text"
+              [(ngModel)]="customCategoryName"
+              placeholder="e.g. Medical Expenses"
+              maxlength="40">
+
+            @if (customCategoryError) {
+              <p class="form-error">{{ customCategoryError }}</p>
+            }
+          </div>
+        }
+
+        <form (ngSubmit)="saveTransaction()">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="amount">Amount (INR)</label>
+              <div class="amount-input">
+                <span>₹</span>
+                <input
+                  id="amount"
+                  type="number"
+                  name="amount"
+                  [(ngModel)]="amount"
+                  placeholder="0.00"
+                  min="0.01"
+                  step="0.01"
+                  required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="date">Transaction date</label>
+              <app-date-picker
+                [(value)]="date">
+              </app-date-picker>
+            </div>
+          </div>
+
+          @if (showCustomCategory) {
+            <button
+              type="button"
+              class="primary-button add-category-button"
+              (click)="addCustomCategory()">
+              ＋ Add Custom Category
+            </button>
+          }
+
+          <div class="modal-actions">
+            @if (editingTransactionId) {
+              <button
+                type="button"
+                class="danger-button"
+                (click)="deleteCurrentTransaction()">
+                Delete Transaction
+              </button>
+            }
+
+            <button type="button" class="secondary-button" (click)="closeForm()">
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="primary-button"
+              [disabled]="!selectedCategory || amount === null || amount <= 0 || !date">
+              {{ editingTransactionId ? "Save Changes" : "Save Transaction" }}
+            </button>
+          </div>
+        </form>
+
+      </section>
+    </div>
+  }
+
+
+  @if (showEditCategory) {
+    <div class="modal-backdrop" (click)="cancelEditCategory()">
+      <section
+        class="transaction-modal category-manager-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-manager-title"
+        (click)="$event.stopPropagation()">
+
+        <div class="modal-heading">
+          <div>
+            <span class="eyebrow">CUSTOM CATEGORY MANAGEMENT</span>
+            <h2 id="category-manager-title">Manage {{ originalCategoryName }}</h2>
+            <p>Rename this category or manage its transactions.</p>
+          </div>
+
+          <button
+            type="button"
+            class="modal-close"
+            aria-label="Close category manager"
+            (click)="cancelEditCategory()">
+            ×
+          </button>
+        </div>
+
+        <div class="custom-category-panel">
+          <label for="edit-category-name">Category name</label>
+          <input
+            id="edit-category-name"
+            class="custom-category-input"
+            type="text"
+            [(ngModel)]="editingCategoryName"
+            placeholder="Category name"
+            maxlength="40">
+
+          @if (editCategoryError) {
+            <p class="form-error">{{ editCategoryError }}</p>
+          }
+
+          <div class="category-transactions">
+            <div class="category-transactions-heading">
+              <strong>Transactions in this category</strong>
+              <span>{{ transactionsForEditingCategory.length }} records</span>
+            </div>
+
+            @if (transactionsForEditingCategory.length > 0) {
+              @for (item of transactionsForEditingCategory; track item.id) {
+                <button
+                  type="button"
+                  class="category-transaction-item"
+                  (click)="openEditTransaction(item)">
+                  <span class="category-transaction-date">
+                    {{ formatDate(item.date) }}
+                  </span>
+                  <strong
+                    [class.income-value]="item.type === 'income'"
+                    [class.expense-value]="item.type === 'expense'">
+                    {{ formatAmount(item.amount, item.type) }}
+                  </strong>
+                  <span class="category-transaction-edit">Edit →</span>
+                </button>
+              }
+            } @else {
+              <p class="category-transactions-empty">
+                No transactions have been added to this category yet.
+              </p>
+            }
+          </div>
+
+          <div class="category-edit-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="cancelEditCategory()">
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              class="danger-button"
+              (click)="deleteEditingCategory()">
+              Delete Category
+            </button>
+
+            <button
+              type="button"
+              class="primary-button"
+              (click)="saveEditedCategory()">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  }
+
+</div>

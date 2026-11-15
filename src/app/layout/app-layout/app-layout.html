@@ -1,0 +1,143 @@
+<div class="app-shell" (click)="closeThemeMenu()">
+
+  <aside class="sidebar" (click)="$event.stopPropagation()">
+
+    <div class="brand">
+      <div class="brand-icon">S</div>
+      <div>
+        <h2>SpendWise</h2>
+        <span>Personal Finance</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-label">OVERVIEW</p>
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◫</span>
+        <span>Dashboard</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-label">MONEY MANAGEMENT</p>
+      <a routerLink="/transactions" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">↔</span>
+        <span>Transactions</span>
+      </a>
+      <a routerLink="/planner" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◷</span>
+        <span>Planner & Reminders</span>
+      </a>
+      <a routerLink="/accounts" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">▣</span>
+        <span>Accounts</span>
+      </a>
+      <a routerLink="/budgets" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◷</span>
+        <span>Budgets</span>
+      </a>
+      <a routerLink="/savings" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◈</span>
+        <span>Savings Goals</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-label">INSIGHTS</p>
+      <a routerLink="/analytics" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">▥</span>
+        <span>Analytics</span>
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <a routerLink="/settings" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">⚙</span>
+        <span>Settings</span>
+      </a>
+
+      <div class="profile">
+        <div class="avatar">S</div>
+        <div class="profile-info">
+          <strong>Sahil</strong>
+          <span>Personal Workspace</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="main-content">
+
+    <header class="topbar">
+      <div class="workspace-heading">
+        @if (showDashboardBackButton) {
+          <a routerLink="/dashboard"
+             class="dashboard-back-button"
+             aria-label="Back to Dashboard"
+             title="Back to Dashboard">
+            <span>←</span>
+          </a>
+        }
+        <h3>My Finances</h3>
+      </div>
+
+      <div class="topbar-actions">
+
+        <div class="theme-picker" (click)="$event.stopPropagation()">
+
+          <button
+            type="button"
+            class="theme-trigger"
+            (click)="toggleThemeMenu()"
+            [attr.aria-expanded]="themeMenuOpen"
+            aria-label="Change appearance">
+            <span class="theme-trigger-icon">◐</span>
+            <span class="theme-trigger-label">Appearance</span>
+            <span class="theme-trigger-current">{{ themeLabel }}</span>
+          </button>
+
+          @if (themeMenuOpen) {
+            <div class="theme-menu">
+              <div class="theme-menu-heading">Choose appearance</div>
+
+              @for (item of themes; track item.id) {
+                <button
+                  type="button"
+                  class="theme-option"
+                  [class.selected]="theme === item.id"
+                  (click)="selectTheme(item.id)">
+
+                  <span
+                    class="theme-swatch"
+                    [attr.data-theme-swatch]="item.id">
+                  </span>
+
+                  <span class="theme-option-copy">
+                    <strong>{{ item.name }}</strong>
+                    <small>{{ item.description }}</small>
+                  </span>
+
+                  @if (theme === item.id) {
+                    <span class="theme-check">✓</span>
+                  }
+                </button>
+              }
+            </div>
+          }
+
+        </div>
+
+        <button type="button" class="icon-button" aria-label="Notifications">♧</button>
+        <div class="topbar-avatar">S</div>
+
+      </div>
+    </header>
+
+    <section class="page-content">
+      <router-outlet />
+    </section>
+
+  </main>
+
+</div>

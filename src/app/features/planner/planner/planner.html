@@ -1,0 +1,312 @@
+<div class="planner-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">PLAN AHEAD</span>
+      <h1>Planner & Reminders</h1>
+      <p>Plan your upcoming income and expenses, and stay ahead of important dates.</p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      (click)="addUpcomingActivity()">
+      <span>＋</span> Add Upcoming Activity
+    </button>
+  </div>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <div class="summary-top">
+        <span class="summary-icon total-icon">▤</span>
+        <span class="summary-label">FUTURE-DATED</span>
+      </div>
+      <div class="summary-value">{{ totalCount() }}</div>
+      <div class="summary-caption">Future-dated transactions</div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-top">
+        <span class="summary-icon upcoming-icon">◷</span>
+        <span class="summary-label">UPCOMING</span>
+      </div>
+      <div class="summary-value">{{ upcomingCount() }}</div>
+      <div class="summary-caption">Scheduled after today</div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-top">
+        <span class="summary-icon due-icon">◉</span>
+        <span class="summary-label">DUE TODAY</span>
+      </div>
+      <div class="summary-value">{{ dueTodayCount() }}</div>
+      <div class="summary-caption">Transactions dated today</div>
+    </article>
+
+    <article class="summary-card">
+      <div class="summary-top">
+        <span class="summary-icon completed-icon">✓</span>
+        <span class="summary-label">COMPLETED</span>
+      </div>
+      <div class="summary-value">{{ completedCount }}</div>
+      <div class="summary-caption">Completed records</div>
+    </article>
+  </section>
+
+  <section class="planner-content">
+
+    <div class="content-header">
+      <div>
+        <h2>Upcoming Activities</h2>
+        <p>Future-dated entries from your existing transaction history.</p>
+      </div>
+
+      <div class="header-actions">
+        <div class="view-switch">
+          <button type="button"
+            [class.active]="activeView === 'list'"
+            [attr.aria-pressed]="activeView === 'list'"
+            (click)="selectView('list')">
+            ☷ List View
+          </button>
+
+          <button type="button"
+            [class.active]="activeView === 'calendar'"
+            [attr.aria-pressed]="activeView === 'calendar'"
+            (click)="selectView('calendar')">
+            ▦ Calendar View
+          </button>
+        </div>
+
+        @if (activeView === 'list') {
+          <div class="date-filter">
+            <button type="button"
+              class="filter-button"
+              [class.filter-active]="selectedDateFilter !== ''"
+              [attr.aria-expanded]="dateFilterOpen"
+              (click)="toggleDateFilter()">
+              <span>▦</span>
+              Filter
+              @if (selectedDateFilter) {
+                <i class="filter-indicator"></i>
+              }
+            </button>
+
+            @if (dateFilterOpen) {
+              <div class="filter-popover">
+                <div class="filter-popover-heading">
+                  <strong>Filter upcoming activities</strong>
+                  <button type="button"
+                    aria-label="Close filter"
+                    (click)="toggleDateFilter()">×</button>
+                </div>
+
+                <div class="filter-fields">
+                  <div class="filter-field">
+                    <label for="planner-filter-month">Month</label>
+                    <select id="planner-filter-month"
+                      [value]="filterMonth"
+                      (change)="onFilterMonthChange(+$any($event.target).value)">
+                      @for (month of availableMonths; track month.value) {
+                        <option [value]="month.value">{{ month.label }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="filter-field">
+                    <label for="planner-filter-year">Year</label>
+                    <select id="planner-filter-year"
+                      [value]="filterYear"
+                      (change)="onFilterYearChange(+$any($event.target).value)">
+                      @for (year of availableYears; track year) {
+                        <option [value]="year">{{ year }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="filter-field exact-date-field">
+                  <label>Exact date <span>(Optional)</span></label>
+                  <app-date-picker
+                    [value]="selectedDateFilter"
+                    [minDate]="today"
+                    (valueChange)="onExactDateChange($event)">
+                  </app-date-picker>
+                </div>
+
+                <div class="filter-popover-footer">
+                  <button type="button"
+                    class="filter-clear"
+                    (click)="clearDateFilter()">Clear</button>
+                  <button type="button"
+                    class="filter-apply"
+                    (click)="applyDateFilter()">Apply Filter</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (activeView === 'list') {
+
+      <div class="list-toolbar">
+        <span>{{ filteredTransactions.length }} activities</span>
+
+        <span class="active-filter-label">
+          @if (selectedDateFilter) {
+            {{ formatDate(selectedDateFilter) }}
+          } @else {
+            {{ monthNames[filterMonth] }} {{ filterYear }}
+          }
+        </span>
+      </div>
+
+      @if (filteredTransactions.length > 0) {
+        <div class="activity-list">
+          @for (item of filteredTransactions; track item.id) {
+            <article class="activity-row">
+              <div class="activity-type-icon"
+                [class.income-icon]="item.type === 'income'"
+                [class.expense-icon]="item.type === 'expense'">
+                {{ item.type === 'income' ? '↙' : '↗' }}
+              </div>
+
+              <div class="activity-details">
+                <strong>{{ item.category }}</strong>
+                <span>{{ item.description || 'No description' }}</span>
+              </div>
+
+              <div class="activity-date">
+                <small>Scheduled date</small>
+                <strong>{{ formatDate(item.date) }}</strong>
+              </div>
+
+              <div class="activity-amount"
+                [class.income-amount]="item.type === 'income'"
+                [class.expense-amount]="item.type === 'expense'">
+                {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon">▤</div>
+          <h3>No activities found</h3>
+          <p>
+            @if (selectedDateFilter) {
+              No future-dated transaction exists on {{ formatDate(selectedDateFilter) }}.
+            } @else {
+              No future-dated transactions found for {{ monthNames[filterMonth] }} {{ filterYear }}.
+            }
+          </p>
+        </div>
+      }
+
+    } @else {
+
+      <div class="calendar-toolbar">
+        <div class="calendar-month-navigation">
+          <button type="button"
+            (click)="previousMonth()"
+            [disabled]="!canGoToPreviousMonth"
+            aria-label="Previous month">‹</button>
+
+          <h3>{{ calendarMonthLabel }}</h3>
+
+          <button type="button"
+            (click)="nextMonth()"
+            aria-label="Next month">›</button>
+        </div>
+
+      </div>
+
+      <div class="calendar-legend">
+        <span><i class="income-dot"></i> Income</span>
+        <span><i class="expense-dot"></i> Expense</span>
+      </div>
+
+      <div class="calendar-grid">
+        @for (dayName of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; track dayName) {
+          <div class="calendar-weekday">{{ dayName }}</div>
+        }
+
+        @for (day of calendarDays; track $index) {
+          @if (day !== null) {
+            <div
+              class="calendar-day"
+              [class.past-date]="isPastDate(day)"
+              [class.today]="isToday(day)"
+              [class.has-activity]="transactionsForDay(day).length > 0"
+              [ngClass]="calendarCellClass(day)"
+              [attr.aria-label]="formatDate(dateForDay(day))">
+
+              <div class="calendar-day-top">
+                <span class="calendar-day-number">{{ day }}</span>
+
+                @if (isToday(day)) {
+                  <span class="today-label">TODAY</span>
+                }
+              </div>
+
+              @if (transactionsForDay(day).length > 0) {
+                <div class="calendar-activity-preview">
+                  @for (item of transactionsForDay(day); track item.id) {
+                    <div class="calendar-activity-line">
+                      <span class="activity-type-indicator"
+                        [class.income-indicator]="item.type === 'income'"
+                        [class.expense-indicator]="item.type === 'expense'">
+                      </span>
+                      <span class="calendar-activity-description">
+                        {{ item.description || item.category }}
+                      </span>
+                      <span class="calendar-activity-amount">
+                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+
+                <div class="calendar-hover-card">
+                  <div class="calendar-hover-heading">
+                    <div>
+                      <span class="hover-eyebrow">SCHEDULED ACTIVITIES</span>
+                      <strong>{{ formatDate(dateForDay(day)) }}</strong>
+                    </div>
+                    <span class="hover-count">
+                      {{ transactionsForDay(day).length }}
+                      {{ transactionsForDay(day).length === 1 ? 'activity' : 'activities' }}
+                    </span>
+                  </div>
+
+                  @for (item of transactionsForDay(day); track item.id) {
+                    <div class="hover-activity"
+                      [class.hover-income]="item.type === 'income'"
+                      [class.hover-expense]="item.type === 'expense'">
+                      <div class="hover-activity-icon">
+                        {{ item.type === 'income' ? '↙' : '↗' }}
+                      </div>
+                      <div class="hover-activity-details">
+                        <strong>{{ item.description || item.category }}</strong>
+                        <span>{{ item.category }}</span>
+                      </div>
+                      <strong class="hover-activity-amount">
+                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                      </strong>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="calendar-day calendar-blank"></div>
+          }
+        }
+      </div>
+
+    }
+
+  </section>
+</div>

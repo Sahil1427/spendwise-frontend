@@ -1,0 +1,29 @@
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    color: #172033;
+  }
+
+  p {
+    margin: 0;
+    color: #929bad;
+    font-size: 13px;
+  }
+}
+
+.primary-button {
+  border: 0;
+  border-radius: 9px;
+  background: #635bdb;
+  color: white;
+  padding: 12px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}

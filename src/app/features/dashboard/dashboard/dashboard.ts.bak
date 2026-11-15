@@ -1,0 +1,73 @@
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+
+@Component({
+  selector: 'app-dashboard',
+  imports: [FormsModule, RouterLink],
+  templateUrl: './dashboard.html',
+  styleUrl: './dashboard.scss',
+})
+export class Dashboard {
+  selectedPeriod = 'This Month';
+
+  summaryCards = [
+    {
+      title: 'Total Balance',
+      amount: '₹8,45,680',
+      change: '+8.2%',
+      description: 'vs. last month',
+      icon: 'wallet',
+      type: 'balance',
+    },
+    {
+      title: 'Monthly Income',
+      amount: '₹1,25,000',
+      change: '+5.4%',
+      description: 'vs. last month',
+      icon: 'income',
+      type: 'income',
+    },
+    {
+      title: 'Monthly Expenses',
+      amount: '₹48,350',
+      change: '-3.2%',
+      description: 'vs. last month',
+      icon: 'expense',
+      type: 'expense',
+    },
+    {
+      title: 'Savings Rate',
+      amount: '61.3%',
+      change: '+4.8%',
+      description: 'vs. last month',
+      icon: 'savings',
+      type: 'savings',
+    },
+  ];
+
+  monthlyData = [
+    { month: 'May', income: 70, expense: 40 },
+    { month: 'Jun', income: 85, expense: 48 },
+    { month: 'Jul', income: 75, expense: 45 },
+    { month: 'Aug', income: 95, expense: 55 },
+    { month: 'Sep', income: 82, expense: 42 },
+    { month: 'Oct', income: 100, expense: 50 },
+  ];
+
+  categories = [
+    { name: 'Food & Dining', amount: '₹12,500', percentage: 75, color: '#7568e8' },
+    { name: 'Shopping', amount: '₹9,800', percentage: 60, color: '#f2a65a' },
+    { name: 'Transport', amount: '₹7,200', percentage: 45, color: '#48b9a1' },
+    { name: 'Bills & Utilities', amount: '₹6,500', percentage: 40, color: '#5b9bea' },
+    { name: 'Entertainment', amount: '₹4,350', percentage: 28, color: '#df83b5' },
+  ];
+
+  transactions = [
+    { name: 'Salary Credit', category: 'Monthly salary', date: '15 Nov 2026', amount: '+₹1,25,000', type: 'income', icon: '↗' },
+    { name: 'Grocery Shopping', category: 'Food & Dining', date: '14 Nov 2026', amount: '-₹3,450', type: 'expense', icon: '🛒' },
+    { name: 'Electricity Bill', category: 'Bills & Utilities', date: '12 Nov 2026', amount: '-₹2,100', type: 'expense', icon: '⚡' },
+    { name: 'Restaurant', category: 'Food & Dining', date: '11 Nov 2026', amount: '-₹1,250', type: 'expense', icon: '🍽' },
+    { name: 'Freelance Payment', category: 'Other Income', date: '10 Nov 2026', amount: '+₹8,500', type: 'income', icon: '↗' },
+  ];
+}

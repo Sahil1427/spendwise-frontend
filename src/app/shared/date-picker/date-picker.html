@@ -1,0 +1,71 @@
+<div class="date-picker-wrapper" (click)="$event.stopPropagation()">
+  <button
+    type="button"
+    class="date-picker-trigger"
+    [class.placeholder]="!value"
+    [attr.aria-expanded]="showCalendar"
+    aria-label="Choose transaction date"
+    (click)="toggleCalendar()">
+    <span>{{ displayValue }}</span>
+    <span class="date-picker-icon">▦</span>
+  </button>
+
+  @if (showCalendar) {
+    <div class="calendar-popup">
+      <div class="calendar-heading">
+        <strong>{{ monthNames[currentMonth] }} {{ currentYear }}</strong>
+        <div class="calendar-navigation">
+          <button type="button" class="calendar-arrow"
+            aria-label="Previous month" [disabled]="isPreviousMonthDisabled" (click)="previousMonth()">‹</button>
+          <button type="button" class="calendar-arrow"
+            aria-label="Next month" [disabled]="isNextMonthDisabled" (click)="nextMonth()">›</button>
+        </div>
+      </div>
+
+      <div class="calendar-selectors">
+        <select aria-label="Select month"
+          (change)="setMonth(+$any($event.target).value)">
+          @for (month of monthNames; track month; let i = $index) {
+            <option [value]="i" [selected]="i === currentMonth" [disabled]="isMonthDisabled(i)">{{ month }}</option>
+          }
+        </select>
+
+        <select aria-label="Select year"
+          (change)="setYear(+$any($event.target).value)">
+          @for (year of years; track year) {
+            <option [value]="year" [selected]="year === currentYear">{{ year }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="calendar-grid">
+        @for (dayName of weekDays; track dayName) {
+          <div class="calendar-weekday">{{ dayName }}</div>
+        }
+
+        @for (day of calendarDays; track $index) {
+          @if (day !== null) {
+            <button
+              type="button"
+              class="calendar-day"
+              [class.selected]="isSelected(day)"
+              [class.today]="isToday(day)"
+              [disabled]="isDisabled(day)"
+              (click)="selectDate(day)">
+              {{ day }}
+            </button>
+          } @else {
+            <div class="calendar-empty"></div>
+          }
+        }
+      </div>
+
+      <div class="calendar-footer">
+        <button type="button" class="calendar-text-button"
+          (click)="clearDate()">Clear</button>
+        <button type="button" class="calendar-today-button"
+          (click)="goToToday()">Today</button>
+      </div>
+    </div>
+  }
+</div>

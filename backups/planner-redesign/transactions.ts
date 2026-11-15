@@ -1,0 +1,825 @@
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { CurrencyPipe } from '@angular/common';
+import { DatePickerComponent } from '../../../shared/date-picker/date-picker';
+import {
+  TransactionService,
+  TransactionType,
+  Transaction,
+} from '../../../services/transaction.service';
+
+interface AmountEntry {
+  amount: number | null;
+  date: string;
+  description: string;
+}
+
+@Component({
+  selector: 'app-transactions',
+  imports: [FormsModule, CurrencyPipe, DatePickerComponent],
+  templateUrl: './transactions.html',
+  styleUrl: './transactions.scss',
+})
+export class Transactions implements OnInit {
+  private transactionService = inject(TransactionService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private returnToPlanner = false;
+  isPlannerAdd = false;
+
+  transactions = this.transactionService.transactions;
+
+
+  readonly currentYear = new Date().getFullYear();
+  selectedDashboardMonth = signal(
+    String(new Date().getMonth() + 1).padStart(2, '0')
+  );
+
+  readonly dashboardMonths = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+
+  onDashboardMonthChange(month: string): void {
+    this.selectedDashboardMonth.set(month);
+  }
+
+  selectedFilter = signal<'all' | 'income' | 'expense'>('all');
+  searchTerm = signal('');
+
+  // Transaction history date filters
+  selectedYear = signal('all');
+  selectedMonth = signal('all');
+  selectedDate = signal('');
+
+  readonly historyYears = Array.from(
+    { length: 2036 - 1970 + 1 },
+    (_, index) => String(1970 + index)
+  );
+
+  readonly historyMonths = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+
+  // Transaction wizard
+  showForm = false;
+  wizardStep: 1 | 2 = 1;
+  editingTransactionId: string | null = null;
+
+  type: TransactionType = 'income';
+  selectedCategory = '';
+  isCustomSelection = false;
+
+  amount: number | null = null;
+  date = this.getToday();
+  description = '';
+
+  // Custom category transaction entries
+  customCategoryName = '';
+  customCategoryError = '';
+  amountEntries: AmountEntry[] = [];
+  useSameDate = false;
+  sharedDate = this.getToday();
+
+  // Custom category manager
+  showEditCategory = false;
+  editingCategoryName = '';
+  originalCategoryName = '';
+  editCategoryError = '';
+
+  categorySelectionError = '';
+  transactionFormError = '';
+
+  get availableCategories(): string[] {
+    const categories = this.transactionService.defaultCategories[this.type];
+
+    return this.type === 'expense'
+      ? categories.filter(category => category !== 'Other Expenses')
+      : categories;
+  }
+
+  get transactionsForEditingCategory(): Transaction[] {
+    if (!this.showEditCategory || !this.originalCategoryName) {
+      return [];
+    }
+
+    return this.transactions().filter(item =>
+      item.type === this.type &&
+      item.category === this.originalCategoryName
+    );
+  }
+
+  filteredTransactions = computed(() => {
+    const search = this.searchTerm().trim().toLowerCase();
+    const filterType = this.selectedFilter();
+    const year = this.selectedYear();
+    const month = this.selectedMonth();
+    const exactDate = this.selectedDate();
+    const historyYear = year === 'all' ? String(this.currentYear) : year;
+    const historyMonth = month === 'all' ? this.selectedDashboardMonth() : month;
+
+    return this.transactions().filter(item => {
+      const matchesType =
+        filterType === 'all' || item.type === filterType;
+
+      const searchableText = [
+        item.category,
+        item.description,
+        item.notes,
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      const matchesSearch =
+        !search || searchableText.includes(search);
+
+      const [itemYear, itemMonth] = item.date.split('-');
+
+      const matchesYear = itemYear === historyYear;
+      const matchesMonth = itemMonth === historyMonth;
+
+      const matchesDate =
+        !exactDate || item.date === exactDate;
+
+      return matchesType &&
+        matchesSearch &&
+        matchesYear &&
+        matchesMonth &&
+        matchesDate;
+    });
+  });
+
+  clearHistoryFilters(): void {
+    this.selectedFilter.set('all');
+    this.searchTerm.set('');
+    this.selectedYear.set('all');
+    this.selectedMonth.set('all');
+    this.selectedDate.set('');
+  }
+
+  setHistoryDate(date: string): void {
+    this.selectedDate.set(date);
+    this.selectedYear.set('all');
+    this.selectedMonth.set('all');
+  }
+
+  setHistoryYear(year: string): void {
+    this.selectedYear.set(year);
+    this.selectedDate.set('');
+  }
+
+  setHistoryMonth(month: string): void {
+    this.selectedMonth.set(month);
+    this.selectedDate.set('');
+  }
+
+  totalIncome = computed(() =>
+    this.transactions()
+      .filter(item => item.type === 'income')
+      .reduce((sum, item) => sum + item.amount, 0)
+  );
+
+  totalExpenses = computed(() =>
+    this.transactions()
+      .filter(item => item.type === 'expense')
+      .reduce((sum, item) => sum + item.amount, 0)
+  );
+
+  // Current-month dashboard
+  currentMonthLabel = computed(() => {
+    const month = Number(this.selectedDashboardMonth()) - 1;
+    return new Intl.DateTimeFormat('en-IN', {
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(this.currentYear, month, 1));
+  });
+
+  currentMonthTransactions = computed(() => {
+    const prefix = `${this.currentYear}-${this.selectedDashboardMonth()}`;
+    return this.transactions().filter(item => item.date.startsWith(prefix));
+  });
+
+  monthlyIncome = computed(() =>
+    this.currentMonthTransactions()
+      .filter(item => item.type === 'income')
+      .reduce((sum, item) => sum + item.amount, 0)
+  );
+
+  monthlyExpenses = computed(() =>
+    this.currentMonthTransactions()
+      .filter(item => item.type === 'expense')
+      .reduce((sum, item) => sum + item.amount, 0)
+  );
+
+  monthlyUpcomingRecords = computed(() =>
+    this.currentMonthTransactions().filter(item => item.date > this.getToday()).length
+  );
+
+  todayRecords = computed(() => {
+    const today = this.getToday();
+    const selectedPrefix = `${this.currentYear}-${this.selectedDashboardMonth()}`;
+    return today.startsWith(selectedPrefix)
+      ? this.transactions().filter(item => item.date === today).length
+      : 0;
+  });
+
+  pastDatedRecords = computed(() =>
+    this.currentMonthTransactions().filter(item => item.date < this.getToday()).length
+  );
+
+  monthlyPopupType = signal<
+    'income' | 'expense' | 'upcoming' | 'today' | 'past' | null
+  >(null);
+
+  monthlyPopupTransactions = computed(() => {
+    const selected = this.monthlyPopupType();
+    if (!selected) return [];
+
+    const today = this.getToday();
+
+    const matching = this.transactions().filter(item => {
+      const inCurrentMonth = item.date.startsWith(
+        `${this.currentYear}-${this.selectedDashboardMonth()}`
+      );
+
+      switch (selected) {
+        case 'income':
+          return inCurrentMonth && item.type === 'income';
+        case 'expense':
+          return inCurrentMonth && item.type === 'expense';
+        case 'upcoming':
+          return inCurrentMonth && item.date > today;
+        case 'today':
+          return item.date === today;
+        case 'past':
+          return inCurrentMonth && item.date < today;
+        default:
+          return false;
+      }
+    });
+
+    return [...matching].sort((a, b) => b.date.localeCompare(a.date));
+  });
+
+  monthlyPopupTotal = computed(() =>
+    this.monthlyPopupTransactions().reduce((sum, item) => sum + item.amount, 0)
+  );
+
+  monthlyPopupTitle = computed(() => {
+    const titles = {
+      income: 'Monthly Income',
+      expense: 'Monthly Expenses',
+      upcoming: 'Upcoming Records',
+      today: "Today's Records",
+      past: 'Past-Dated Records',
+    };
+
+    const selected = this.monthlyPopupType();
+    return selected ? titles[selected] : '';
+  });
+
+  openMonthlyRecords(type: 'income' | 'expense' | 'upcoming' | 'today' | 'past'): void {
+    this.monthlyPopupType.set(type);
+  }
+
+  closeMonthlyRecords(): void {
+    this.monthlyPopupType.set(null);
+  }
+
+  categoryIcons: Record<string, string> = {
+    'Salary': '💼',
+    'Business': '✦',
+    'Business Earnings': '🏢',
+    'Freelance': '💻',
+    'Investments': '📈',
+    'Rental Income': '🏠',
+    'Interest': '🏦',
+    'Gifts Received': '🎁',
+    'Other Income': '＋',
+    'Groceries': '🛒',
+    'Rent': '🏠',
+    'Home EMI': '🏡',
+    'Car EMI': '🚗',
+    'Utilities': '💡',
+    'Transportation': '🚕',
+    'Fuel': '⛽',
+    'Shopping': '🛍️',
+    'Food & Dining': '🍽️',
+    'Healthcare': '🏥',
+    'Education': '📚',
+    'Insurance': '🛡️',
+    'Entertainment': '🎬',
+    'Travel': '✈️',
+    'Subscriptions': '📱',
+    'Personal Care': '🧴',
+    'Family & Household': '👨‍👩‍👧',
+    'Other Expenses': '＋',
+  };
+
+  getToday(): string {
+    const today = new Date();
+
+    return [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  getTomorrow(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return [
+      tomorrow.getFullYear(),
+      String(tomorrow.getMonth() + 1).padStart(2, '0'),
+      String(tomorrow.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  getCurrentMonthStart(): string {
+    const today = new Date();
+
+    return [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      '01',
+    ].join('-');
+  }
+
+  getCurrentMonthEnd(): string {
+    const today = new Date();
+    const lastDay = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0
+    ).getDate();
+
+    return [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(lastDay).padStart(2, '0'),
+    ].join('-');
+  }
+
+  ngOnInit(): void {
+    const action = this.route.snapshot.queryParamMap.get('action');
+    this.isPlannerAdd = action === 'add';
+    this.returnToPlanner = this.route.snapshot.queryParamMap.get('returnTo') === 'planner';
+
+    if (this.isPlannerAdd) {
+      this.openForm();
+    }
+  }
+
+  // Open a new transaction wizard.
+  openForm(): void {
+    this.resetWizard();
+    this.showEditCategory = false;
+    this.showForm = true;
+  }
+
+  private resetWizard(): void {
+    this.wizardStep = 1;
+    this.editingTransactionId = null;
+    this.type = 'income';
+    this.selectedCategory = '';
+    this.isCustomSelection = false;
+    this.amount = null;
+    const defaultDate = this.isPlannerAdd
+      ? this.getTomorrow()
+      : this.getToday();
+
+    this.date = defaultDate;
+    this.description = '';
+
+    this.customCategoryName = '';
+    this.customCategoryError = '';
+    this.amountEntries = [];
+    this.useSameDate = false;
+    this.sharedDate = defaultDate;
+
+    this.categorySelectionError = '';
+    this.transactionFormError = '';
+  }
+
+  changeType(type: TransactionType): void {
+    this.type = type;
+    this.selectedCategory = '';
+    this.isCustomSelection = false;
+    this.categorySelectionError = '';
+  }
+
+  selectCategory(category: string): void {
+    this.selectedCategory = category;
+    this.isCustomSelection = false;
+    this.customCategoryName = '';
+    this.categorySelectionError = '';
+  }
+
+  selectCustomCategory(): void {
+    this.selectedCategory = '';
+    this.isCustomSelection = true;
+    this.categorySelectionError = '';
+  }
+
+  // Move from category selection to the details step.
+  goToNextStep(): void {
+    if (!this.selectedCategory && !this.isCustomSelection) {
+      this.categorySelectionError = 'Please select one category to continue.';
+      return;
+    }
+
+    this.wizardStep = 2;
+    this.transactionFormError = '';
+
+    if (this.isCustomSelection) {
+      this.customCategoryName = '';
+      this.amountEntries = [
+        { amount: null, date: this.isPlannerAdd ? this.getTomorrow() : this.getToday(), description: '' },
+      ];
+      this.useSameDate = false;
+      const defaultDate = this.isPlannerAdd
+        ? this.getTomorrow()
+        : this.getToday();
+
+      this.sharedDate = defaultDate;
+    } else {
+      this.amount = null;
+      this.date = this.isPlannerAdd ? this.getTomorrow() : this.getToday();
+      this.description = '';
+    }
+  }
+
+  goToPreviousStep(): void {
+    if (this.editingTransactionId) {
+      this.closeForm();
+      return;
+    }
+
+    this.wizardStep = 1;
+    this.transactionFormError = '';
+  }
+
+  // Add another amount row. The first additional row enables shared date.
+  addAmountEntry(): void {
+    if (this.amountEntries.length === 1) {
+      this.sharedDate = this.amountEntries[0].date;
+      this.useSameDate = true;
+    }
+
+    this.amountEntries.push({
+      amount: null,
+      date: this.useSameDate ? this.sharedDate : (this.isPlannerAdd ? this.getTomorrow() : this.getToday()),
+      description: '',
+    });
+  }
+
+  removeAmountEntry(index: number): void {
+    if (this.amountEntries.length <= 1) {
+      return;
+    }
+
+    this.amountEntries.splice(index, 1);
+
+    if (this.amountEntries.length === 1) {
+      this.useSameDate = false;
+      this.amountEntries[0].date = this.sharedDate;
+    }
+  }
+
+  toggleSameDate(checked: boolean): void {
+    this.useSameDate = checked;
+
+    if (checked && this.amountEntries.length > 0) {
+      this.sharedDate = this.amountEntries[0].date;
+      this.applySharedDate();
+    }
+  }
+
+  applySharedDate(): void {
+    if (!this.useSameDate) {
+      return;
+    }
+
+    this.amountEntries.forEach(entry => {
+      entry.date = this.sharedDate;
+    });
+  }
+
+  // Save a default-category transaction.
+  saveDefaultTransaction(): void {
+    if (this.editingTransactionId) {
+      const existing = this.transactionService.transactions().find(
+        item => item.id === this.editingTransactionId
+      );
+
+      if (!existing || !this.canEditTransaction(existing)) {
+        this.transactionFormError = 'Past-dated transactions cannot be edited. You can still delete them.';
+        return;
+      }
+    }
+
+    if (
+      !this.selectedCategory ||
+      this.amount === null ||
+      !Number.isFinite(this.amount) ||
+      this.amount <= 0 ||
+      !this.date
+    ) {
+      this.transactionFormError = 'Enter a valid amount and transaction date.';
+      return;
+    }
+
+    const transactionData = {
+      type: this.type,
+      amount: Number(this.amount),
+      category: this.selectedCategory,
+      date: this.date,
+      description: this.description.trim() || undefined,
+    };
+
+    if (this.editingTransactionId) {
+      this.transactionService.updateTransaction(
+        this.editingTransactionId,
+        transactionData
+      );
+    } else {
+      this.transactionService.addTransaction(transactionData);
+    }
+
+    this.closeForm();
+  }
+
+  // Save a custom category and all its amount entries.
+  saveCustomTransactions(): void {
+    if (this.editingTransactionId) {
+      const existing = this.transactionService.transactions().find(
+        item => item.id === this.editingTransactionId
+      );
+
+      if (!existing || !this.canEditTransaction(existing)) {
+        this.transactionFormError = 'Past-dated transactions cannot be edited. You can still delete them.';
+        return;
+      }
+    }
+
+    const categoryName = this.customCategoryName.trim();
+
+    if (!categoryName) {
+      this.transactionFormError = 'Please enter a custom category name.';
+      return;
+    }
+
+    if (
+      this.amountEntries.length === 0 ||
+      this.amountEntries.some(entry =>
+        entry.amount === null ||
+        !Number.isFinite(entry.amount) ||
+        entry.amount <= 0 ||
+        !(this.useSameDate ? this.sharedDate : entry.date)
+      )
+    ) {
+      this.transactionFormError = 'Enter a valid amount and date for every entry.';
+      return;
+    }
+
+    // When editing, rename the custom category consistently if its name changed.
+    if (this.editingTransactionId) {
+      const entry = this.amountEntries[0];
+
+      if (categoryName !== this.selectedCategory) {
+        const renamed = this.transactionService.renameCustomCategory(
+          this.type,
+          this.selectedCategory,
+          categoryName
+        );
+
+        if (!renamed) {
+          this.transactionFormError =
+            'This category name already exists or is invalid.';
+          return;
+        }
+      }
+
+      this.transactionService.updateTransaction(
+        this.editingTransactionId,
+        {
+          type: this.type,
+          amount: Number(entry.amount),
+          category: categoryName,
+          date: this.useSameDate ? this.sharedDate : entry.date,
+          description: entry.description.trim() || undefined,
+        }
+      );
+
+      this.closeForm();
+      return;
+    }
+
+    // Create the category before saving its transactions.
+    const added = this.transactionService.addCustomCategory(
+      this.type,
+      categoryName
+    );
+
+    if (!added) {
+      this.transactionFormError =
+        'This category already exists. Please choose another name.';
+      return;
+    }
+
+    for (const entry of this.amountEntries) {
+      this.transactionService.addTransaction({
+        type: this.type,
+        amount: Number(entry.amount),
+        category: categoryName,
+        date: this.useSameDate ? this.sharedDate : entry.date,
+        description: entry.description.trim() || undefined,
+      });
+    }
+
+    this.closeForm();
+  }
+
+  onTransactionBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeForm();
+    }
+  }
+
+  closeForm(): void {
+    this.showForm = false;
+    this.resetWizard();
+
+    if (this.returnToPlanner) {
+      this.returnToPlanner = false;
+      this.router.navigate(['/planner']);
+    }
+  }
+
+  // Records can be edited only when their entered date is today or in the future.
+  canEditTransaction(item: Transaction): boolean {
+    return Boolean(item.date) && item.date >= this.getToday();
+  }
+
+  // Open any transaction for editing.
+  openEditTransaction(item: Transaction): void {
+    if (!this.canEditTransaction(item)) {
+      window.alert('Past-dated transactions cannot be edited. You can still delete them.');
+      return;
+    }
+
+    this.showEditCategory = false;
+    this.showForm = true;
+
+    this.wizardStep = 2;
+    this.editingTransactionId = item.id;
+    this.type = item.type;
+    this.selectedCategory = item.category;
+    this.isCustomSelection = this.isCustomTransaction(item);
+
+    this.amount = item.amount;
+    this.date = item.date;
+    this.description = item.description || '';
+
+    this.customCategoryName = this.isCustomSelection ? item.category : '';
+    this.amountEntries = this.isCustomSelection
+      ? [{
+          amount: item.amount,
+          date: item.date,
+          description: item.description || '',
+        }]
+      : [];
+
+    this.useSameDate = false;
+    this.sharedDate = item.date;
+    this.transactionFormError = '';
+  }
+
+  deleteCurrentTransaction(): void {
+    if (!this.editingTransactionId) {
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this transaction?')) {
+      return;
+    }
+
+    this.transactionService.deleteTransaction(this.editingTransactionId);
+    this.closeForm();
+  }
+
+  deleteTransaction(id: string): void {
+    if (window.confirm('Delete this transaction?')) {
+      this.transactionService.deleteTransaction(id);
+    }
+  }
+
+  // Custom category management.
+  openEditCategory(category: string): void {
+    if (!this.isCustomCategory(category)) {
+      return;
+    }
+
+    this.originalCategoryName = category;
+    this.editingCategoryName = category;
+    this.editCategoryError = '';
+    this.showEditCategory = true;
+    this.showForm = false;
+    this.editingTransactionId = null;
+  }
+
+  cancelEditCategory(): void {
+    this.showEditCategory = false;
+    this.editingCategoryName = '';
+    this.originalCategoryName = '';
+    this.editCategoryError = '';
+  }
+
+  saveEditedCategory(): void {
+    const newName = this.editingCategoryName.trim();
+
+    if (!newName) {
+      this.editCategoryError = 'Please enter a category name.';
+      return;
+    }
+
+    const updated = this.transactionService.renameCustomCategory(
+      this.type,
+      this.originalCategoryName,
+      newName
+    );
+
+    if (!updated) {
+      this.editCategoryError =
+        'This category name already exists or is invalid.';
+      return;
+    }
+
+    this.cancelEditCategory();
+  }
+
+  deleteEditingCategory(): void {
+    const category = this.originalCategoryName;
+
+    if (!window.confirm(
+      `Delete "${category}" from your custom categories? Existing transactions will be retained.`
+    )) {
+      return;
+    }
+
+    this.transactionService.removeCustomCategory(this.type, category);
+    this.cancelEditCategory();
+  }
+
+  isCustomCategory(category: string): boolean {
+    return this.transactionService
+      .customCategories()[this.type]
+      .includes(category);
+  }
+
+  isCustomTransaction(item: Transaction): boolean {
+    return this.transactionService
+      .customCategories()[item.type]
+      .includes(item.category);
+  }
+
+  formatDate(date: string): string {
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(`${date}T00:00:00`));
+  }
+
+  formatAmount(amount: number, type: TransactionType): string {
+    const formatted = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2,
+    }).format(amount);
+
+    return `${type === 'income' ? '+' : '-'}${formatted}`;
+  }
+}
