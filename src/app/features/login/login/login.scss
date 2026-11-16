@@ -1,0 +1,508 @@
+/*
+ * The login screen is always a fixed dark theme — it must read as premium
+ * and consistent regardless of which app theme the user has picked.
+ * Colours below are hard-coded (never var(--app-bg) / var(--surface)).
+ */
+.login-stage {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  overflow: hidden;
+  color-scheme: dark;
+  background:
+    radial-gradient(
+      1000px 640px at 8% -8%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      760px 540px at 105% 95%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 58%
+    ),
+    #08090f;
+}
+
+/* ---- brand showcase pane -------------------------------------------------- */
+
+.brand-pane {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 18px;
+  padding: 34px 42px 28px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.07);
+  border-radius: 26px;
+  background:
+    radial-gradient(
+      900px 480px at 0% -10%,
+      color-mix(in srgb, var(--accent) 34%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      620px 420px at 110% 112%,
+      color-mix(in srgb, var(--accent) 18%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(160deg, #12121f 0%, #0b0c15 70%);
+  box-shadow: 0 40px 120px rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+
+.pane-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pane-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(90% 90% at 30% 20%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(90% 90% at 30% 20%, #000 20%, transparent 78%);
+}
+
+.pane-curve {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+}
+
+.pane-curve-line {
+  stroke: color-mix(in srgb, var(--accent) 62%, transparent);
+  stroke-width: 1.5;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: login-curve-draw 2.6s ease-out 0.35s forwards;
+}
+
+.pane-curve-dot {
+  fill: #b7abff;
+  opacity: 0;
+  filter: drop-shadow(0 0 9px rgb(183 171 255 / 0.8));
+  animation: login-dot-in 0.5s ease-out 2.7s forwards;
+}
+
+.pane-top,
+.pane-headline,
+.pane-stat,
+.pane-features,
+.pane-foot {
+  position: relative;
+  z-index: 1;
+}
+
+.pane-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  animation: login-fade-up 0.6s cubic-bezier(0.22, 0.9, 0.36, 1) 0.05s both;
+}
+
+.pane-headline {
+  animation: login-fade-up 0.6s cubic-bezier(0.22, 0.9, 0.36, 1) 0.18s both;
+
+  h2 {
+    margin: 0;
+    font-size: clamp(27px, 2.4vw, 36px);
+    font-weight: 800;
+    letter-spacing: -0.9px;
+    line-height: 1.14;
+    color: #f4f5fa;
+  }
+
+  p {
+    margin: 14px 0 0;
+    max-width: 420px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: rgb(255 255 255 / 0.58);
+  }
+}
+
+.pane-stat {
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px 12px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 16px;
+  background: rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(8px);
+  animation: login-fade-up 0.6s cubic-bezier(0.22, 0.9, 0.36, 1) 0.32s both;
+}
+
+.stat-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.42);
+}
+
+.stat-value {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  color: #e9e6ff;
+  text-shadow: 0 0 28px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.spark {
+  width: 100%;
+  height: 52px;
+  grid-column: 1 / -1;
+}
+
+.spark-area {
+  opacity: 0;
+  animation: login-dot-in 0.9s ease-out 1.3s forwards;
+}
+
+.spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 55%, transparent));
+  animation: login-curve-draw 1.8s ease-out 1s forwards;
+}
+
+.pane-features {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 11px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 550;
+    color: rgb(255 255 255 / 0.78);
+    animation: login-fade-up 0.5s cubic-bezier(0.22, 0.9, 0.36, 1)
+      calc(0.45s + var(--st, 0) * 0.12s) both;
+  }
+
+  app-icon {
+    width: 15px;
+    height: 15px;
+    color: #a89bff;
+  }
+}
+
+.pane-foot {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: rgb(255 255 255 / 0.32);
+}
+
+/* ---- form pane -------------------------------------------------------------- */
+
+.form-pane {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 40px 40px 40px 12px;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 38px 34px 28px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 22px;
+  background: linear-gradient(
+    168deg,
+    rgb(255 255 255 / 0.06),
+    rgb(255 255 255 / 0.02) 60%
+  );
+  box-shadow:
+    0 40px 120px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.09);
+  backdrop-filter: blur(16px);
+  animation: login-card-in 0.55s cubic-bezier(0.22, 0.9, 0.36, 1) both;
+}
+
+.card-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.brand-tile {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #9b8cff, #6359e2);
+  box-shadow: 0 10px 26px rgb(99 89 226 / 0.45);
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.brand-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.42);
+}
+
+.brand-name {
+  display: block;
+  margin-top: 2px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #f2f3f9;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #f4f5fa;
+}
+
+.card-subtitle {
+  margin: 10px 0 22px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgb(255 255 255 / 0.52);
+}
+
+@keyframes login-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+}
+
+@keyframes login-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes login-curve-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes login-dot-in {
+  to {
+    opacity: 1;
+  }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.45);
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 13px;
+  width: 16px;
+  height: 16px;
+  color: rgb(255 255 255 / 0.38);
+  pointer-events: none;
+}
+
+.field-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px 0 40px;
+  border: 1px solid rgb(255 255 255 / 0.10);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.28);
+  color: #eceef6;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: rgb(255 255 255 / 0.30);
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+}
+
+.login-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.login-submit {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 76%, #fff 24%),
+    var(--accent) 58%
+  );
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 750;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 38%, transparent);
+  transition: opacity 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      rgb(255 255 255 / 0.22) 50%,
+      transparent 68%
+    );
+    transform: translateX(-130%);
+    transition: transform 0.65s ease;
+  }
+
+  &:hover:not(:disabled) {
+    opacity: 0.96;
+
+    &::after {
+      transform: translateX(130%);
+    }
+  }
+
+  app-icon {
+    position: relative;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: progress;
+  }
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 0.38);
+
+  app-icon {
+    width: 13px;
+    height: 13px;
+    color: color-mix(in srgb, var(--accent) 70%, #fff);
+  }
+}
+
+/* ---- responsive & motion ------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .brand-pane {
+    display: none;
+  }
+
+  .form-pane {
+    padding: 24px;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 24px 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card,
+  .pane-top,
+  .pane-headline,
+  .pane-stat,
+  .pane-features li {
+    animation: none;
+  }
+
+  .pane-curve-line,
+  .spark-line {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  .pane-curve-dot,
+  .spark-area {
+    animation: none;
+    opacity: 1;
+  }
+}

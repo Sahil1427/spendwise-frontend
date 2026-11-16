@@ -212,7 +212,15 @@ export class TransactionForm implements OnChanges {
 
   onCancel(): void {
     this.error = '';
-    this.canceled.emit();
+
+    if (this.isEdit) {
+      // Edit modal: let the host close the dialog.
+      this.canceled.emit();
+      return;
+    }
+
+    // Add page ("Clear"): wipe the form and restore the context date.
+    this.afterCreateReset();
   }
 
   onDelete(): void {

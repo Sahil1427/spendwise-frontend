@@ -21,7 +21,11 @@
 
   <div class="summary-grid">
     @for (card of summaryCards(); track card.label) {
-      <div class="summary-card" [class.negative-card]="card.tone === 'negative'">
+      <div
+        class="summary-card"
+        [class.negative-card]="card.tone === 'negative'"
+        [class.clickable-card]="card.clickable !== undefined"
+        (click)="card.clickable ? openList(card.clickable) : null">
         <div class="summary-top">
           <div>
             <span class="summary-label">{{ card.label }}</span>
@@ -35,10 +39,31 @@
             <app-icon [name]="card.icon"></app-icon>
           </span>
         </div>
+        @if (card.progress !== undefined) {
+          <div class="cap-progress" aria-hidden="true">
+            <div class="cap-progress-fill" [style.width.%]="card.progress"></div>
+          </div>
+        }
         <small>{{ card.caption }}</small>
       </div>
     }
   </div>
+
+  @if (recordCount() > 0) {
+    <div
+      class="finance-status"
+      [class.status-positive]="financeStatus().positive"
+      [class.status-negative]="!financeStatus().positive"
+      role="status">
+      <app-icon
+        [name]="financeStatus().positive ? 'check-circle' : 'alert'"
+        class="status-icon"></app-icon>
+      <div>
+        <strong>{{ financeStatus().title }} · {{ monthSelection.selectedLabel() }}</strong>
+        <span>{{ financeStatus().text }}</span>
+      </div>
+    </div>
+  }
 
   <div class="dash-grid">
 
@@ -169,5 +194,79 @@
     <span>SpendWise · Your money, under control.</span>
     <span>Showing · {{ monthSelection.selectedLabel() }}</span>
   </div>
+
+  @if (listView() !== null) {
+    <div class="list-modal-backdrop" (click)="closeList()">
+      <section
+        class="list-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="{{ listKindLabel() }} records"
+        (click)="$event.stopPropagation()">
+
+        <div class="list-modal-heading">
+          <div class="list-modal-id">
+            <span class="list-modal-icon"
+              [class.income-tile]="listView() === 'income'"
+              [class.expense-tile]="listView() === 'expense'">
+              <app-icon
+                [name]="listView() === 'income' ? 'trending-up' : 'trending-down'">
+              </app-icon>
+            </span>
+            <div>
+              <h3>{{ listKindLabel() }} records</h3>
+              <small>{{ monthSelection.selectedLabel() }} · {{ listRows().length }} record{{ listRows().length === 1 ? '' : 's' }}</small>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="list-modal-close"
+            aria-label="Close record list"
+            (click)="closeList()">
+            <app-icon name="close"></app-icon>
+          </button>
+        </div>
+
+        @if (listRows().length > 0) {
+          <div class="list-modal-body">
+            @for (row of listRows(); track $index) {
+              <div class="list-modal-row">
+                <div class="list-row-main">
+                  <strong>{{ row.name }}</strong>
+                  <small>{{ row.category }}</small>
+                </div>
+                <div class="list-row-meta">
+                  <small>{{ row.date }}</small>
+                  <strong
+                    [class.income-tint]="listView() === 'income'"
+                    [class.expense-tint]="listView() === 'expense'">
+                    {{ row.amount }}
+                    @if (row.currency && row.currency !== activeCurrencyCode) {
+                      <small class="row-currency">{{ row.currency }}</small>
+                    }
+                  </strong>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="list-modal-footer">
+            <span>Total for {{ listKindLabel().toLowerCase() }} · {{ monthSelection.selectedLabel() }}</span>
+            <strong
+              [class.income-tint]="listView() === 'income'"
+              [class.expense-tint]="listView() === 'expense'">
+              {{ listTotalLabel() }}
+            </strong>
+          </div>
+        } @else {
+          <div class="list-modal-empty">
+            <app-icon name="inbox"></app-icon>
+            <p>No {{ listKindLabel().toLowerCase() }} records in {{ monthSelection.selectedLabel() }}.</p>
+          </div>
+        }
+
+      </section>
+    </div>
+  }
 
 </div>

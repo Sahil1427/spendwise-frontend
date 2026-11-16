@@ -188,11 +188,156 @@
 }
 
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border: 0;
   border-radius: 9px;
   background: var(--accent);
   color: white;
   padding: 12px 18px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+
+  app-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    opacity: 0.92;
+  }
+}
+
+.cap-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.cap-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--text-secondary);
+  }
+}
+
+.cap-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .cap-symbol {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+}
+
+.cap-input {
+  padding-left: 36px !important;
+  background-image: none !important;
+}
+
+.cap-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cap-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 750;
+  animation: cap-fade-in 0.18s ease;
+
+  app-icon {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@keyframes cap-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.clear-cap-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  app-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+    color: var(--danger);
+  }
+}
+
+.cap-chip {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent);
+
+  app-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.cap-error {
+  margin: 10px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cap-hint {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .cap-row {
+    grid-template-columns: 1fr;
+  }
 }

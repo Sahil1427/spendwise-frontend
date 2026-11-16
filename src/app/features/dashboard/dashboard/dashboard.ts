@@ -1,13 +1,13 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MonthSelector } from '../../../shared/month-selector/month-selector';
 import { Icon } from '../../../shared/icon/icon';
 import {
   TransactionService,
-  Transaction,
 } from '../../../services/transaction.service';
 import { SettingsService } from '../../../services/settings.service';
 import { MonthSelectionService } from '../../../services/month-selection.service';
+import { AuthService } from '../../../services/auth.service';
 
 /**
  * Dashboard — the user-friendly homepage, strictly month-wise.
@@ -25,7 +25,63 @@ import { MonthSelectionService } from '../../../services/month-selection.service
 export class Dashboard {
   private readonly transactionService = inject(TransactionService);
   private readonly settingsService = inject(SettingsService);
+  private readonly authService = inject(AuthService);
   readonly monthSelection = inject(MonthSelectionService);
+
+  /** Income / Expenses card popup state. */
+  readonly listView = signal<'income' | 'expense' | null>(null);
+
+  openList(kind: 'income' | 'expense'): void {
+    this.listView.set(kind);
+  }
+
+  closeList(): void {
+    this.listView.set(null);
+  }
+
+  readonly listRows = computed(() => {
+    const kind = this.listView();
+    if (!kind) {
+      return [] as {
+        name: string;
+        category: string;
+        date: string;
+        amount: string;
+        currency?: string;
+      }[];
+    }
+
+    return this.monthTransactions()
+      .filter(item => item.type === kind)
+      .map(item => ({
+        name:
+          item.name?.trim() ||
+          item.description?.trim() ||
+          (kind === 'income' ? 'Income record' : 'Expense record'),
+        category: item.category,
+        date: new Intl.DateTimeFormat('en-IN', {
+          day: '2-digit',
+          month: 'short',
+        }).format(new Date(`${item.date}T00:00:00`)),
+        amount: this.formatAmount(item.amount, kind, item.currency),
+        currency: item.currency,
+      }));
+  });
+
+  listKindLabel(): string {
+    return this.listView() === 'income' ? 'Income' : 'Expenses';
+  }
+
+  /** Active settings currency — foreign records show a small chip. */
+  get activeCurrencyCode(): string {
+    return this.settingsService.currency();
+  }
+
+  listTotalLabel(): string {
+    return this.listView() === 'income'
+      ? this.money(this.incomeTotal())
+      : this.money(this.expenseTotal());
+  }
 
   readonly monthTransactions = computed(() => {
     const prefix = this.monthSelection.prefix();
@@ -62,36 +118,84 @@ export class Dashboard {
 
   readonly recordCount = computed(() => this.monthTransactions().length);
 
-  readonly summaryCards = computed(() => [
-    {
-      label: 'Net balance',
-      value: this.money(this.netTotal()),
-      tone: this.netTotal() >= 0 ? 'neutral' : 'negative',
-      icon: 'wallet',
-      caption: this.monthSelection.selectedLabel(),
-    },
-    {
-      label: 'Income',
-      value: this.money(this.incomeTotal()),
-      tone: 'positive',
-      icon: 'trending-up',
-      caption: `${this.monthTransactions().filter(i => i.type === 'income').length} records`,
-    },
-    {
-      label: 'Expenses',
-      value: this.money(this.expenseTotal()),
-      tone: 'negative',
-      icon: 'trending-down',
-      caption: `${this.monthTransactions().filter(i => i.type === 'expense').length} records`,
-    },
-    {
-      label: 'Savings rate',
-      value: `${this.savingsRate()}%`,
-      tone: 'neutral',
-      icon: 'percent',
-      caption: 'Kept of total income',
-    },
-  ]);
+  readonly summaryCards = computed(() => {
+    const incomeCount = this.monthTransactions()
+      .filter(i => i.type === 'income')
+      .length;
+    const expenseCount = this.monthTransactions()
+      .filter(i => i.type === 'expense')
+      .length;
+    const cap = this.settingsService.savingCap();
+    const net = this.netTotal();
+
+    return [
+      {
+        label: 'Net balance',
+        value: this.money(net),
+        tone: net >= 0 ? 'neutral' : 'negative',
+        icon: 'wallet',
+        caption: this.monthSelection.selectedLabel(),
+      },
+      {
+        label: 'Income',
+        value: this.money(this.incomeTotal()),
+        tone: 'positive',
+        icon: 'trending-up',
+        caption: `${incomeCount} record${incomeCount === 1 ? '' : 's'} · tap to view`,
+        clickable: 'income' as const,
+      },
+      {
+        label: 'Expenses',
+        value: this.money(this.expenseTotal()),
+        tone: 'negative',
+        icon: 'trending-down',
+        caption: `${expenseCount} record${expenseCount === 1 ? '' : 's'} · tap to view`,
+        clickable: 'expense' as const,
+      },
+      {
+        label: 'Savings rate',
+        value: `${this.savingsRate()}%`,
+        tone: 'neutral',
+        icon: 'percent',
+        caption: 'Kept of total income',
+      },
+      {
+        label: 'Savings cap',
+        value: cap ? this.money(Math.max(0, net)) : '—',
+        tone: cap && net < 0 ? 'negative' : 'neutral',
+        icon: 'target',
+        caption: cap
+          ? net >= cap
+            ? `Cap of ${this.money(cap)} reached ✓`
+            : `${this.money(Math.max(0, cap - net))} left of ${this.money(cap)}`
+          : 'Set a monthly cap in Settings',
+        progress:
+          cap && net > 0 ? Math.min(100, (net / cap) * 100) : cap ? 0 : undefined,
+      },
+    ];
+  });
+
+  /** Green/red monthly status — positive or negative for the month. */
+  readonly financeStatus = computed(() => {
+    const net = this.netTotal();
+    const month = this.monthSelection.selectedLabel();
+
+    return net >= 0
+      ? {
+          positive: true,
+          title: 'Positive',
+          text: `You saved ${this.money(
+            net
+          )} in ${month} — income covered every expense.`,
+        }
+      : {
+          positive: false,
+          title: 'Negative',
+          text: `Spending ran ${this.money(
+            -net
+          )} ahead of income in ${month}. Check Reports to see where.`,
+        };
+  });
 
   private static readonly PALETTE = [
     '#7568e8', '#48b9a1', '#f2a65a', '#5b9bea', '#df83b5',
@@ -213,8 +317,9 @@ export class Dashboard {
     const hour = new Date().getHours();
     const part =
       hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+    const name = this.authService.displayName() || 'there';
 
-    return `Good ${part}, Sahil 👋`;
+    return `Good ${part}, ${name} \u{1F44B}`;
   }
 
   money(amount: number): string {

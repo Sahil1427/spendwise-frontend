@@ -12,29 +12,31 @@
       </div>
     </div>
 
-    <div class="nav-section">
-      <p class="nav-label">OVERVIEW</p>
-      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
-        <app-icon name="dashboard" class="nav-icon"></app-icon>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/reports" routerLinkActive="active" class="nav-item">
-        <app-icon name="report" class="nav-icon"></app-icon>
-        <span>Reports</span>
-      </a>
-    </div>
+    <nav class="nav-scroll" aria-label="Primary">
+      <div class="nav-section">
+        <p class="nav-label">OVERVIEW</p>
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+          <app-icon name="dashboard" class="nav-icon"></app-icon>
+          <span>Dashboard</span>
+        </a>
+        <a routerLink="/reports" routerLinkActive="active" class="nav-item">
+          <app-icon name="report" class="nav-icon"></app-icon>
+          <span>Reports</span>
+        </a>
+      </div>
 
-    <div class="nav-section">
-      <p class="nav-label">MONEY MANAGEMENT</p>
-      <a routerLink="/add" routerLinkActive="active" class="nav-item">
-        <app-icon name="plus" class="nav-icon"></app-icon>
-        <span>Add Transaction</span>
-      </a>
-      <a routerLink="/history" routerLinkActive="active" class="nav-item">
-        <app-icon name="history" class="nav-icon"></app-icon>
-        <span>History</span>
-      </a>
-    </div>
+      <div class="nav-section">
+        <p class="nav-label">MONEY MANAGEMENT</p>
+        <a routerLink="/add" routerLinkActive="active" class="nav-item">
+          <app-icon name="plus" class="nav-icon"></app-icon>
+          <span>Add Transaction</span>
+        </a>
+        <a routerLink="/history" routerLinkActive="active" class="nav-item">
+          <app-icon name="history" class="nav-icon"></app-icon>
+          <span>History</span>
+        </a>
+      </div>
+    </nav>
 
     <div class="sidebar-bottom">
       <a routerLink="/settings" routerLinkActive="active" class="nav-item">
@@ -43,12 +45,20 @@
       </a>
 
       <div class="profile">
-        <div class="avatar">S</div>
+        <div class="avatar">{{ avatarLetter() }}</div>
         <div class="profile-info">
-          <strong>Sahil</strong>
+          <strong>{{ displayName() }}</strong>
           <span>Personal Workspace</span>
         </div>
       </div>
+
+      <button
+        type="button"
+        class="logout-button"
+        (click)="onLogout()">
+        <app-icon name="logout" class="logout-icon"></app-icon>
+        <span>Log out</span>
+      </button>
 
       <div class="sidebar-meta">
         <app-icon name="shield"></app-icon>
@@ -119,10 +129,7 @@
 
         </div>
 
-        <button type="button" class="icon-button" aria-label="Notifications">
-          <app-icon name="bell"></app-icon>
-        </button>
-        <div class="topbar-avatar">S</div>
+        <div class="topbar-avatar">{{ avatarLetter() }}</div>
 
       </div>
     </header>
@@ -132,5 +139,7 @@
     </section>
 
   </main>
+
+  <app-chatbot />
 
 </div>

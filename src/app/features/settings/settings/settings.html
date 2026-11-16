@@ -59,7 +59,79 @@
       <strong class="preview-amount">{{ currencySymbol() }} 0</strong>
       <span class="preview-code">{{ selectedCurrency() }}</span>
     </div>
+  </section>
 
+  <section class="settings-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Savings cap</h2>
+        <p>
+          Your monthly saving target. The dashboard tracks how much you have
+          saved toward it, with a progress bar.
+        </p>
+      </div>
+
+      @if (capValueText) {
+        <span class="panel-chip cap-chip">
+          <app-icon name="target"></app-icon>
+          Active · {{ capValueText }} / month
+        </span>
+      } @else {
+        <span class="panel-chip">No cap set</span>
+      }
+    </div>
+
+    <div class="cap-row">
+      <div class="cap-field">
+        <label for="cap-input">
+          Monthly cap amount ({{ selectedCurrency() }})
+        </label>
+
+        <div class="cap-input-wrap">
+          <span class="cap-symbol">{{ currencySymbol() }}</span>
+          <input
+            id="cap-input"
+            type="number"
+            min="0.01"
+            step="0.01"
+            class="field-input cap-input"
+            placeholder="e.g. 5000"
+            name="savingCap"
+            [ngModel]="capDraft"
+            (ngModelChange)="capDraft = $event; capError.set('')">
+        </div>
+      </div>
+
+      <div class="cap-actions">
+        @if (capSaved()) {
+          <span class="cap-saved" role="status">
+            <app-icon name="check"></app-icon> Saved
+          </span>
+        }
+
+        @if (savingCap()) {
+          <button type="button" class="clear-cap-button" (click)="clearCap()">
+            <app-icon name="trash"></app-icon> Clear cap
+          </button>
+        }
+
+        <button type="button" class="primary-button" (click)="saveCap()">
+          <app-icon name="target"></app-icon> {{ savingCap() ? 'Update cap' : 'Set cap' }}
+        </button>
+      </div>
+    </div>
+
+    @if (capError()) {
+      <p class="cap-error">{{ capError() }}</p>
+    } @else {
+      <p class="cap-hint">
+        Positive or negative status: the Dashboard banner compares your income
+        against this month's expenses whenever you check your numbers.
+      </p>
+    }
+  </section>
+
+  <section class="settings-panel">
     <div class="settings-note">
       <span class="settings-note-icon">ⓘ</span>
       <p>

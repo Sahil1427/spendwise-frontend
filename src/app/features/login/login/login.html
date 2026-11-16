@@ -1,0 +1,135 @@
+<div class="login-stage">
+
+  <!-- ── Brand showcase pane (≥1024px) ───────────────────────────── -->
+  <aside class="brand-pane" aria-hidden="true">
+    <div class="pane-bg">
+      <div class="pane-grid"></div>
+      <svg class="pane-curve" viewBox="0 0 720 900" fill="none" preserveAspectRatio="none">
+        <path class="pane-curve-line" pathLength="1"
+          d="M-40 700 C 140 620, 300 740, 470 480 S 660 260, 780 170"/>
+        <circle class="pane-curve-dot" cx="780" cy="170" r="4"/>
+      </svg>
+    </div>
+
+    <div class="pane-top">
+      <div class="brand-tile">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M6.8 21.6l5.2-5.1 3.6 3.6 7.2-7.4" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.6 12.7h5.4v5.5" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="23.4" cy="9.2" r="3.6" fill="#fff" fill-opacity=".92"/>
+        </svg>
+      </div>
+      <div>
+        <span class="brand-eyebrow">Personal Finance</span>
+        <span class="brand-name">SpendWise</span>
+      </div>
+    </div>
+
+    <div class="pane-headline">
+      <h2>Master every rupee.</h2>
+      <p>Your money, organised month by month — income, expenses, savings goals and the story behind every number.</p>
+    </div>
+
+    <div class="pane-stat">
+      <span class="stat-label">Tracked across your last 3 months</span>
+      <span class="stat-value">₹{{ statText }}</span>
+      <svg class="spark" viewBox="0 0 290 56" fill="none" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#8f7dff" stop-opacity=".34"/>
+            <stop offset="1" stop-color="#8f7dff" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path class="spark-area"
+          d="M0 44 C 32 42, 52 36, 84 35 S 148 27, 182 28 S 246 15, 290 7 L 290 56 L 0 56 Z"
+          fill="url(#sparkFill)"/>
+        <path class="spark-line" pathLength="1"
+          d="M0 44 C 32 42, 52 36, 84 35 S 148 27, 182 28 S 246 15, 290 7"
+          stroke="#a89bff" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <ul class="pane-features">
+      <li style="--st: 0"><app-icon name="check-circle"></app-icon> Local-first — nothing leaves this device</li>
+      <li style="--st: 1"><app-icon name="check-circle"></app-icon> 22 currencies, history stays as recorded</li>
+      <li style="--st: 2"><app-icon name="check-circle"></app-icon> Month-wise insights &amp; savings caps</li>
+    </ul>
+
+    <div class="pane-foot">© 2026 SpendWise · v1.0</div>
+  </aside>
+
+  <!-- ── Sign-in pane ─────────────────────────────────────────────── -->
+  <div class="form-pane">
+    <div class="login-card">
+
+      <div class="card-brand">
+        <div class="brand-tile">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M6.8 21.6l5.2-5.1 3.6 3.6 7.2-7.4" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.6 12.7h5.4v5.5" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="23.4" cy="9.2" r="3.6" fill="#fff" fill-opacity=".92"/>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-eyebrow">Secure sign in</span>
+          <span class="brand-name">Welcome back</span>
+        </div>
+      </div>
+
+      <p class="card-subtitle">Sign in to your workspace and pick up right where you left off.</p>
+
+      <form class="login-form" (ngSubmit)="onSubmit()">
+        <label class="field">
+          <span class="field-label">Username</span>
+          <div class="input-wrap">
+            <app-icon name="user" class="input-icon"></app-icon>
+            <input
+              type="text"
+              class="field-input"
+              name="loginUsername"
+              [ngModel]="username"
+              (ngModelChange)="username = $event; error.set('')"
+              placeholder="Enter your username"
+              autocomplete="username">
+          </div>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Password</span>
+          <div class="input-wrap">
+            <app-icon name="lock" class="input-icon"></app-icon>
+            <input
+              type="password"
+              class="field-input"
+              name="loginPassword"
+              [ngModel]="password"
+              (ngModelChange)="password = $event; error.set('')"
+              placeholder="••••••••••"
+              autocomplete="current-password">
+          </div>
+        </label>
+
+        @if (error()) {
+          <p class="login-error" role="alert">{{ error() }}</p>
+        }
+
+        <button
+          type="submit"
+          class="login-submit"
+          [disabled]="busy()">
+          @if (busy()) {
+            Signing in…
+          } @else {
+            Sign in <app-icon name="arrow-right"></app-icon>
+          }
+        </button>
+      </form>
+
+      <div class="card-foot">
+        <app-icon name="shield"></app-icon>
+        <span>Local-first — your data never leaves this device.</span>
+      </div>
+
+    </div>
+  </div>
+</div>

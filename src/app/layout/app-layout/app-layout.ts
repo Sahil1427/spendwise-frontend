@@ -1,17 +1,32 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
+import { Chatbot } from '../../shared/chatbot/chatbot';
+import { AuthService } from '../../services/auth.service';
 
 type Theme = 'white' | 'dark' | 'cosmic-blue' | 'classic';
 
 @Component({
   selector: 'app-app-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, Chatbot],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.scss',
 })
 export class AppLayout implements OnInit {
   private router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  readonly displayName = this.auth.displayName;
+
+  avatarLetter(): string {
+    const name = this.auth.displayName();
+    return name ? name.charAt(0) : 'S';
+  }
+
+  onLogout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
 
   get showDashboardBackButton(): boolean {
     return !this.router.url.startsWith('/dashboard');

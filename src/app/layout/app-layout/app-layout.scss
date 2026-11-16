@@ -14,12 +14,28 @@
 .sidebar {
   width: 250px;
   min-width: 250px;
-  padding: 28px 18px;
+  height: 100vh;
+  padding: 28px 18px 12px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
   border-right: 1px solid var(--border);
   transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Brand header + sidebar footer stay pinned; only the nav scroll area
+ * (and the page itself) is allowed to scroll. */
+.nav-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 -6px;
+  padding: 0 6px;
+  scrollbar-width: thin;
+  scrollbar-color:
+    color-mix(in srgb, var(--text-muted) 40%, transparent) transparent;
 }
 
 .brand {
@@ -118,7 +134,37 @@
 }
 
 .sidebar-bottom {
-  margin-top: auto;
+  flex: none;
+  margin-top: 4px;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 12px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    color: var(--danger);
+  }
+
+  .logout-icon {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .sidebar-meta {
@@ -455,3 +501,4 @@
     transform: translateX(-2px);
   }
 }
+

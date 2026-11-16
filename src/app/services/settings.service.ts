@@ -10,6 +10,8 @@ export interface CountryOption {
 export interface SettingsPreferences {
   country: string;
   currency: string;
+  /** Monthly saving target ("savings cap"); null when unset. */
+  savingCap: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,6 +49,7 @@ export class SettingsService {
 
   readonly currency = computed(() => this.preferences().currency);
   readonly country = computed(() => this.preferences().country);
+  readonly savingCap = computed(() => this.preferences().savingCap);
 
   private static defaultForCountry(code: string): string {
     const match = SettingsService.COUNTRIES.find(
@@ -56,7 +59,11 @@ export class SettingsService {
   }
 
   private load(): SettingsPreferences {
-    const fallback: SettingsPreferences = { country: 'IN', currency: 'INR' };
+    const fallback: SettingsPreferences = {
+      country: 'IN',
+      currency: 'INR',
+      savingCap: null,
+    };
 
     try {
       const saved = localStorage.getItem(SettingsService.SETTINGS_KEY);
@@ -71,8 +78,14 @@ export class SettingsService {
         typeof parsed.currency === 'string' && parsed.currency
           ? parsed.currency.toUpperCase()
           : SettingsService.defaultForCountry(country);
+      const savingCap =
+        typeof parsed.savingCap === 'number' &&
+        Number.isFinite(parsed.savingCap) &&
+        parsed.savingCap > 0
+          ? parsed.savingCap
+          : null;
 
-      return { country, currency };
+      return { country, currency, savingCap };
     } catch {
       return fallback;
     }
@@ -89,6 +102,7 @@ export class SettingsService {
   // transactions are never touched; only new records are affected.
   setCountry(code: string): void {
     this.preferences.update(current => ({
+      ...current,
       country: code,
       currency: SettingsService.defaultForCountry(code),
     }));
@@ -102,6 +116,16 @@ export class SettingsService {
     this.preferences.update(current => ({
       ...current,
       currency: clean,
+    }));
+
+    this.persist();
+  }
+
+  /** Monthly saving target; pass null to clear it. */
+  setSavingCap(value: number | null): void {
+    this.preferences.update(current => ({
+      ...current,
+      savingCap: value,
     }));
 
     this.persist();

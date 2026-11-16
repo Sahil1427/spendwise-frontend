@@ -1,0 +1,77 @@
+@if (!open) {
+  <button type="button" class="chat-fab" (click)="toggleOpen()" aria-label="Open Guide Bot">
+    <app-icon name="chat"></app-icon>
+    <span class="chat-fab-label">Guide</span>
+  </button>
+} @else {
+  <section class="chatbot" aria-label="Guide Bot chat">
+
+    <header class="chatbot-header">
+      <div class="chatbot-id">
+        <div class="chatbot-avatar">
+          <app-icon name="chat"></app-icon>
+        </div>
+        <div>
+          <strong>Guide Bot</strong>
+          <small>Scripted tour &amp; help · no AI</small>
+        </div>
+      </div>
+      <button type="button" class="chatbot-close" (click)="toggleOpen()" aria-label="Close Guide Bot">
+        <app-icon name="close"></app-icon>
+      </button>
+    </header>
+
+    <div #messageList class="chatbot-messages">
+      @for (message of messages(); track message.id) {
+        <div class="chat-bubble" [class.user-bubble]="message.from === 'user'">
+          {{ message.text }}
+        </div>
+      }
+
+      @if (tourStep() !== null) {
+        <div class="chat-tour-card">
+          <div class="chat-tour-copy">
+            <small>{{ tourProgress() }} · {{ currentTourStep()?.title }}</small>
+            <p>{{ currentTourStep()?.body }}</p>
+          </div>
+          <div class="chat-tour-actions">
+            <button
+              type="button"
+              class="tour-btn primary"
+              (click)="tourNext()">
+              @if (isLastTourStep()) {
+                Done
+              } @else {
+                Next <app-icon name="arrow-right"></app-icon>
+              }
+            </button>
+            <button type="button" class="tour-btn" (click)="endTour()">
+              End tour
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="chatbot-chips">
+      @for (chip of quickChips; track chip) {
+        <button type="button" class="chat-chip" (click)="quickAsk(chip)">{{ chip }}</button>
+      }
+    </div>
+
+    <form class="chatbot-input" (ngSubmit)="send()">
+      <input
+        type="text"
+        class="chatbot-input-field"
+        name="chatDraft"
+        [ngModel]="draft"
+        (ngModelChange)="draft = $event"
+        placeholder="Ask how SpendWise works…"
+        aria-label="Ask the Guide Bot">
+      <button type="submit" class="chatbot-send" aria-label="Send message">
+        <app-icon name="send"></app-icon>
+      </button>
+    </form>
+
+  </section>
+}

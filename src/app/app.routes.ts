@@ -1,5 +1,9 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './layout/app-layout/app-layout';
+import {
+  authenticatedGuard,
+  guestGuard,
+} from './services/auth.guards';
 
 /**
  * Month-wise navigation model:
@@ -8,13 +12,21 @@ import { AppLayout } from './layout/app-layout/app-layout';
  *   System   -> Settings (region & currency)
  *
  * Feature pages are lazy-loaded (loadComponent) so the initial bundle
- * only ships the shell + Dashboard. Legacy URLs keep working through
- * redirects so bookmarks and old links never dead-end.
+ * only ships the shell + Dashboard. The whole app sits behind a login
+ * (demo: sahil / pass123). Legacy URLs keep working through redirects
+ * so bookmarks and old links never dead-end.
  */
 export const routes: Routes = [
   {
+    path: 'login',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/login/login/login').then(m => m.Login),
+  },
+  {
     path: '',
     component: AppLayout,
+    canActivate: [authenticatedGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
