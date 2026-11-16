@@ -1,0 +1,237 @@
+.transaction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+
+  &.two-col {
+    > * {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+
+  .type-group & {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+
+.form-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 550;
+  appearance: none;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+    font-weight: 450;
+  }
+}
+
+select.form-input {
+  min-height: 46px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23929bad' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+
+  option {
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+}
+
+.type-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-secondary);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    .type-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    &.active {
+      background: var(--accent);
+      color: #fff;
+    }
+  }
+}
+
+.custom-category-row {
+  display: flex;
+}
+
+.custom-input {
+  border-color: var(--accent);
+}
+
+.amount-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-secondary);
+  min-height: 46px;
+
+  &:focus-within {
+    border-color: var(--accent);
+  }
+
+  .amount-symbol {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-width: 18px;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+
+    &:focus {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: var(--text-muted);
+      font-weight: 450;
+    }
+  }
+}
+
+.form-error {
+  margin: -6px 0 0;
+  padding: 10px 13px;
+  border: 1px solid rgb(255 99 99 / 0.35);
+  border-radius: 9px;
+  background: rgb(255 99 99 / 0.08);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+
+  .form-actions-right {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.form-actions .primary-button,
+.form-actions .secondary-button,
+.form-actions .danger-button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.primary-button {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.danger-button {
+  border: 1px solid rgb(255 99 99 / 0.4);
+  background: transparent;
+  color: var(--danger);
+
+  &:hover {
+    background: rgb(255 99 99 / 0.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .form-row,
+  .form-row.two-col {
+    flex-direction: column;
+  }
+
+  .form-group.type-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

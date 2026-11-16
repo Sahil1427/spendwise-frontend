@@ -1,0 +1,158 @@
+<div class="analytics-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">INSIGHTS</span>
+      <h1>Reports</h1>
+      <p>Monthly and category-wise breakdown of your finances.</p>
+    </div>
+
+    <div class="report-controls">
+      <select
+        class="control-input"
+        [ngModel]="selectedYear()"
+        (ngModelChange)="selectedYear.set($event)"
+        aria-label="Report year">
+        @for (year of reportYears; track year) {
+          <option [value]="year">{{ year }}</option>
+        }
+      </select>
+
+      <select
+        class="control-input"
+        [ngModel]="selectedType()"
+        (ngModelChange)="onTypeChange($event)"
+        aria-label="Report type">
+        <option value="all">All</option>
+        <option value="income">Income only</option>
+        <option value="expense">Expenses only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="report-summary">
+    <div class="summary-card">
+      <span class="summary-label">Net amount · {{ selectedYear() }}</span>
+      <strong [class.negative-value]="netTotal() < 0">{{ money(netTotal()) }}</strong>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Income</span>
+      <strong class="positive-value">{{ money(incomeTotal()) }}</strong>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Expenses</span>
+      <strong class="negative-value">{{ money(expenseTotal()) }}</strong>
+    </div>
+  </div>
+
+  <div class="report-column">
+
+    <section class="report-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Monthly trend</h2>
+          <p>{{ selectedYear() }} · income vs expenses</p>
+        </div>
+        <div class="trend-legend">
+          <span class="legend-item"><i class="legend-swatch income-swatch"></i> Income</span>
+          <span class="legend-item"><i class="legend-swatch expense-swatch"></i> Expenses</span>
+        </div>
+      </div>
+
+      @if (reportTransactions().length > 0) {
+        <div class="trend-chart">
+          @for (month of monthlyData(); track month.label) {
+            <div class="trend-month">
+              <div class="trend-bar-group">
+                <div
+                  class="trend-bar income-bar"
+                  [style.height.%]="month.incomeHeight"
+                  [title]="'Income: ' + money(month.income)">
+                </div>
+                <div
+                  class="trend-bar expense-bar"
+                  [style.height.%]="month.expenseHeight"
+                  [title]="'Expenses: ' + money(month.expense)">
+                </div>
+              </div>
+              <span class="trend-month-label">{{ month.label }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span>▥</span>
+          <strong>No data for {{ selectedYear() }}</strong>
+          <p>Add transactions to see the monthly trend here.</p>
+        </div>
+      }
+    </section>
+
+    <div class="report-grid">
+
+      <section class="report-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Top spending</h2>
+            <p>By category · {{ selectedYear() }}</p>
+          </div>
+        </div>
+
+        @if (categoryBreakdown().length > 0) {
+          <div class="category-list">
+            @for (category of categoryBreakdown(); track category.name) {
+              <div class="category-item">
+                <div class="category-info">
+                  <span>{{ category.name }}</span>
+                  <strong>{{ category.amount }}</strong>
+                </div>
+                <div class="progress-track">
+                  <div
+                    class="progress-fill"
+                    [style.width.%]="category.percentage"
+                    [style.background]="category.color">
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">
+            <span>↙</span>
+            <strong>No spending recorded</strong>
+            <p>Category totals will appear once you add expenses.</p>
+          </div>
+        }
+      </section>
+
+      <section class="report-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Year comparison</h2>
+            <p>{{ nowYear() }} vs {{ previousYear() }}</p>
+          </div>
+        </div>
+
+        <div class="comparison-table">
+          <div class="comparison-row comparison-header">
+            <span>Metric</span>
+            <span>{{ nowYear() }}</span>
+            <span>{{ previousYear() }}</span>
+            <span>Change</span>
+          </div>
+
+          @for (row of yearlyComparison(); track row.label) {
+            <div class="comparison-row">
+              <span class="comparison-label">{{ row.label }}</span>
+              <strong>{{ money(row.current) }}</strong>
+              <span>{{ money(row.previous) }}</span>
+              <span class="comparison-change">{{ row.change }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</div>

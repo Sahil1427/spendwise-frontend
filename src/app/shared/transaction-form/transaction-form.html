@@ -1,0 +1,139 @@
+<form class="transaction-form" (submit)="$event.preventDefault(); onSubmit()">
+
+  <div class="form-row">
+    <div class="form-group type-group">
+      <span class="form-label">Type</span>
+      <div class="type-switch" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="type === 'income'"
+          [attr.aria-selected]="type === 'income'"
+          (click)="changeType('income')">
+          <app-icon name="trending-up" class="type-icon"></app-icon> Income
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [class.active]="type === 'expense'"
+          [attr.aria-selected]="type === 'expense'"
+          (click)="changeType('expense')">
+          <app-icon name="trending-down" class="type-icon"></app-icon> Expense
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="tf-category">Category</label>
+      @if (showNewCategory) {
+        <div class="custom-category-row">
+          <input
+            id="tf-category"
+            type="text"
+            class="form-input custom-input"
+            placeholder="Name for the new category"
+            name="newCategoryName"
+            [ngModel]="newCategoryName"
+            (ngModelChange)="newCategoryName = $event; errorText = ''"
+            maxlength="40"
+            required>
+        </div>
+      } @else {
+        <select
+          id="tf-category"
+          class="form-input"
+          name="category"
+          [ngModel]="selectedCategory"
+          (ngModelChange)="onCategorySelect($event)"
+          required>
+          <option value="" disabled>Select category…</option>
+          @for (item of availableCategories; track item) {
+            <option [value]="item">{{ item }}</option>
+          }
+          <option [value]="isNewCategory">＋ Add new category…</option>
+        </select>
+      }
+    </div>
+  </div>
+
+  <div class="form-row two-col">
+    <div class="form-group">
+      <label class="form-label" for="tf-name">Name</label>
+      <input
+        id="tf-name"
+        type="text"
+        class="form-input"
+        placeholder="Optional — e.g. November salary"
+        name="recordName"
+        [ngModel]="name"
+        (ngModelChange)="name = $event"
+        maxlength="60">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="tf-description">Description</label>
+      <input
+        id="tf-description"
+        type="text"
+        class="form-input"
+        placeholder="What was this for? (optional)"
+        name="recordDescription"
+        [ngModel]="description"
+        (ngModelChange)="description = $event"
+        maxlength="120">
+    </div>
+  </div>
+
+  <div class="form-row two-col">
+    <div class="form-group">
+      <label class="form-label" for="tf-amount">{{ amountLabel }}</label>
+      <div class="amount-input">
+        <span class="amount-symbol">{{ currencySymbol }}</span>
+        <input
+          id="tf-amount"
+          type="number"
+          class="form-input"
+          placeholder="0.00"
+          min="0.01"
+          step="0.01"
+          name="recordAmount"
+          [ngModel]="amount"
+          (ngModelChange)="amount = $event; errorText = ''"
+          required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">Date</span>
+      <app-date-picker
+        [value]="date"
+        (valueChange)="onDateChange($event)">
+      </app-date-picker>
+    </div>
+  </div>
+
+  @if (errorText) {
+    <p class="form-error">{{ errorText }}</p>
+  }
+
+  <div class="form-actions">
+    <button type="button" class="secondary-button" (click)="onCancel()">
+      {{ isEdit ? 'Cancel' : 'Clear' }}
+    </button>
+
+    <div class="form-actions-right">
+      @if (isEdit) {
+        <button
+          type="button"
+          class="danger-button"
+          (click)="onDelete()">
+          Delete
+        </button>
+      }
+      <button type="submit" class="primary-button">
+        {{ isEdit ? 'Save Changes' : 'Save Transaction' }}
+      </button>
+    </div>
+  </div>
+
+</form>

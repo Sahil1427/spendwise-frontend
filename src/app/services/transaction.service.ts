@@ -1,5 +1,6 @@
 
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { SettingsService } from './settings.service';
 
 export type TransactionType = 'income' | 'expense';
 export type PlannerState = 'pending' | 'completed';
@@ -14,9 +15,11 @@ export interface Transaction {
   id: string;
   type: TransactionType;
   amount: number;
+  currency: string;
   category: string;
   date: string;
   createdAt: string;
+  name?: string;
   description?: string;
   notes?: string;
 
@@ -31,6 +34,7 @@ export interface Transaction {
 
 @Injectable({ providedIn: 'root' })
 export class TransactionService {
+  private readonly settings = inject(SettingsService);
   private readonly transactionKey = 'spendwise-transactions';
   private readonly categoryKey = 'spendwise-custom-categories';
 
@@ -72,6 +76,12 @@ export class TransactionService {
 
       const normalized = parsed.map((item, index): Transaction => {
         const date = item.date || today;
+        // Legacy records predate per-record currency; stamp them once with
+        // the current setting so existing totals stay meaningful.
+        const currency =
+          typeof item.currency === 'string' && item.currency
+            ? item.currency
+            : this.settings.currency();
         const isExistingPlannerRecord =
           item.plannerState === 'pending' ||
           item.plannerState === 'completed';
@@ -83,9 +93,11 @@ export class TransactionService {
           id: item.id || `legacy-${index}`,
           type: item.type === 'income' ? 'income' : 'expense',
           amount: Number(item.amount) || 0,
+          currency,
           category: item.category || item.description || 'Other Expenses',
           date,
           createdAt: item.createdAt || new Date(`${date}T12:00:00`).toISOString(),
+          name: item.name,
           description: item.description,
           notes: item.notes,
           plannerState: isExistingPlannerRecord
@@ -213,10 +225,12 @@ export class TransactionService {
   }
 
   addTransaction(
-    transaction: Omit<Transaction, 'id' | 'createdAt'>
+    transaction: Omit<Transaction, 'id' | 'createdAt' | 'currency'>
   ): void {
+    // New records always use the currently selected currency.
     const newTransaction: Transaction = {
       ...transaction,
+      currency: this.settings.currency(),
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
@@ -227,11 +241,14 @@ export class TransactionService {
 
   updateTransaction(
     id: string,
-    updates: Omit<Transaction, 'id' | 'createdAt'>
+    updates: Omit<Transaction, 'id' | 'createdAt' | 'currency'>
   ): void {
+    // The currency of an existing record is never changed by edits.
     this.transactions.update(items =>
       items.map(item =>
-        item.id === id ? { ...item, ...updates } : item
+        item.id === id
+          ? { ...item, ...updates, currency: item.currency }
+          : item
       )
     );
 

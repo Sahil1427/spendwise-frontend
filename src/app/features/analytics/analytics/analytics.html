@@ -1,6 +1,250 @@
-<div class="page-heading">
-  <div>
-    <h1>Analytics</h1>
-    <p>Understand your spending patterns and financial trends.</p>
+<div class="analytics-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">INSIGHTS</span>
+      <h1>Reports</h1>
+      <p>Full detail for the selected month, plus the year at a glance.</p>
+    </div>
+
+    <app-month-selector
+      [value]="monthSelection.selectedMonth()"
+      (valueChange)="monthSelection.setMonth($event)">
+    </app-month-selector>
   </div>
+
+  <section class="report-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>{{ monthSelection.selectedLabel() }} — Summary</h2>
+        <p>Every record dated in this month</p>
+      </div>
+      <span class="record-count">
+        {{ monthTransactions().length }} records
+      </span>
+    </div>
+
+    <div class="report-summary">
+      <div class="summary-card">
+        <span>
+          <app-icon name="wallet" class="card-icon"></app-icon>
+          Net amount
+        </span>
+        <strong [class.negative-value]="netTotal() < 0">{{ money(netTotal()) }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>
+          <app-icon name="trending-up" class="card-icon income-card-icon"></app-icon>
+          Income
+        </span>
+        <strong class="positive-value">{{ money(incomeTotal()) }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>
+          <app-icon name="trending-down" class="card-icon expense-card-icon"></app-icon>
+          Expenses
+        </span>
+        <strong class="negative-value">{{ money(expenseTotal()) }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>
+          <app-icon name="percent" class="card-icon"></app-icon>
+          Savings rate
+        </span>
+        <strong>{{ savingsRate() }}%</strong>
+      </div>
+    </div>
+
+    <div class="report-subhead">
+      <div class="filter-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="selectedFilter() === 'all'"
+          (click)="selectedFilter.set('all')">
+          All
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [class.active]="selectedFilter() === 'income'"
+          (click)="selectedFilter.set('income')">
+          Income
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [class.active]="selectedFilter() === 'expense'"
+          (click)="selectedFilter.set('expense')">
+          Expenses
+        </button>
+      </div>
+      <p>Itemised records for {{ monthSelection.selectedLabel() }}</p>
+    </div>
+
+    @if (listed().length > 0) {
+      <div class="report-table">
+        <div class="report-row report-head">
+          <span>CATEGORY</span>
+          <span>DESCRIPTION</span>
+          <span>DATE</span>
+          <span class="right">AMOUNT</span>
+        </div>
+
+        @for (item of listed(); track item.id) {
+          <div class="report-row">
+            <span class="report-category">{{ item.category }}</span>
+            <span class="report-description">
+              {{ item.description || item.name || '—' }}
+            </span>
+            <span class="report-date">{{ formatDate(item.date) }}</span>
+            <strong class="right"
+              [class.income-value]="item.type === 'income'"
+              [class.expense-value]="item.type === 'expense'">
+              {{ formatAmount(item.amount, item.type, item.currency) }}
+            </strong>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-line">
+        No {{ selectedFilter() === 'all' ? '' : selectedFilter() + ' ' }}
+        records in {{ monthSelection.selectedLabel() }}.
+      </div>
+    }
+  </section>
+
+  <div class="report-grid two">
+
+    <section class="report-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>{{ monthSelection.selectedLabel() }} vs
+            {{ hasPreviousMonth() ? previousMonthLabel() : '—' }}</h2>
+          <p>Month-over-month comparison</p>
+        </div>
+      </div>
+
+      @if (hasPreviousMonth()) {
+        <div class="comparison-block">
+          <div class="comparison-row comparison-head">
+            <span>Metric</span>
+            <span class="right">This month</span>
+            <span class="right">Previous</span>
+            <span class="right">Change</span>
+          </div>
+
+          <div class="comparison-row">
+            <span>Income</span>
+            <strong class="right">{{ money(incomeTotal()) }}</strong>
+            <span class="right">{{ money(previousIncome()) }}</span>
+            <span class="right comparison-change">
+              {{ changePercent(incomeTotal(), previousIncome()) }}
+            </span>
+          </div>
+
+          <div class="comparison-row">
+            <span>Expenses</span>
+            <strong class="right">{{ money(expenseTotal()) }}</strong>
+            <span class="right">{{ money(previousExpense()) }}</span>
+            <span class="right comparison-change">
+              {{ changePercent(expenseTotal(), previousExpense()) }}
+            </span>
+          </div>
+
+          <div class="comparison-row">
+            <span>Net</span>
+            <strong class="right" [class.negative-value]="netTotal() < 0">
+              {{ money(netTotal()) }}
+            </strong>
+            <span class="right">
+              {{ money(previousIncome() - previousExpense()) }}
+            </span>
+            <span class="right comparison-change">
+              {{ changePercent(netTotal(), previousIncome() - previousExpense()) }}
+            </span>
+          </div>
+        </div>
+      } @else {
+        <div class="empty-line">
+          January is the first month of the year — there is no previous
+          month to compare against.
+        </div>
+      }
+    </section>
+
+    <section class="report-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Spending by category</h2>
+          <p>{{ monthSelection.selectedLabel() }} · share of expenses</p>
+        </div>
+      </div>
+
+      @if (categoryBreakdown().length > 0) {
+        <div class="category-list">
+          @for (category of categoryBreakdown(); track category.name) {
+            <div class="category-item">
+              <div class="category-info">
+                <span>{{ category.name }}</span>
+                <strong>{{ category.amount }}</strong>
+                <small>{{ category.share }}%</small>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill"
+                  [style.width.%]="category.bar"
+                  [style.background]="category.color">
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-line">
+          No spending recorded in {{ monthSelection.selectedLabel() }}.
+        </div>
+      }
+    </section>
+
+  </div>
+
+  <section class="report-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>{{ monthSelection.currentYear }} — month by month</h2>
+        <p>
+          Every month of the current year. Select a month in any tab to
+          open its details.
+        </p>
+      </div>
+    </div>
+
+    <div class="year-table">
+      <div class="year-row year-head">
+        <span>MONTH</span>
+        <span class="right">INCOME</span>
+        <span class="right">EXPENSE</span>
+        <span class="right">NET</span>
+        <span>ACTIVITY</span>
+      </div>
+
+      @for (row of yearTable(); track row.month) {
+        <div
+          class="year-row"
+          [class.selected-row]="row.selected"
+          [attr.data-has-data]="row.hasData ? 'true' : null">
+          <span class="year-month">{{ row.label }}</span>
+          <span class="right year-income">{{ row.income }}</span>
+          <span class="right year-expense">{{ row.expense }}</span>
+          <span class="right" [class.negative-value]="row.bar < 50">
+            {{ row.net }}
+          </span>
+          <span class="year-bar-track">
+            <span class="year-bar" [style.width.%]="row.bar"></span>
+          </span>
+        </div>
+      }
+    </div>
+  </section>
+
 </div>

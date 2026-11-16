@@ -1,11 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { Icon } from '../../shared/icon/icon';
 
 type Theme = 'white' | 'dark' | 'cosmic-blue' | 'classic';
 
 @Component({
   selector: 'app-app-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.scss',
 })
@@ -34,9 +35,10 @@ export class AppLayout implements OnInit {
     const savedTheme = localStorage.getItem('spendwise-theme');
     const validThemes: Theme[] = ['white', 'dark', 'cosmic-blue', 'classic'];
 
+    // Dark is the default appearance until the user picks another.
     this.theme = validThemes.includes(savedTheme as Theme)
       ? savedTheme as Theme
-      : 'white';
+      : 'dark';
 
     this.applyTheme();
   }

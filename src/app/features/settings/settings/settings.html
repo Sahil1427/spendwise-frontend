@@ -1,6 +1,73 @@
-<div class="page-heading">
-  <div>
-    <h1>Settings</h1>
-    <p>Manage your profile, currency and preferences.</p>
+<div class="settings-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">PREFERENCES</span>
+      <h1>Settings</h1>
+      <p>Manage your region, currency and preferences.</p>
+    </div>
   </div>
+
+  <section class="settings-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Region &amp; Currency</h2>
+        <p>Controls which currency is used for new transactions.</p>
+      </div>
+      <span class="panel-chip">
+        <span class="panel-chip-flag">{{ countryFlag() }}</span>
+        {{ countryName() }}
+      </span>
+    </div>
+
+    <div class="settings-grid">
+      <div class="setting-field">
+        <label for="country-select">Country</label>
+        <select
+          id="country-select"
+          class="field-input"
+          [ngModel]="selectedCountry()"
+          (ngModelChange)="onCountryChange($event)">
+          @for (country of countries; track country.code) {
+            <option [value]="country.code">
+              {{ country.flag }} {{ country.name }}
+            </option>
+          }
+        </select>
+        <small>Choosing a country applies its default currency.</small>
+      </div>
+
+      <div class="setting-field">
+        <label for="currency-select">Currency</label>
+        <select
+          id="currency-select"
+          class="field-input"
+          [ngModel]="selectedCurrency()"
+          (ngModelChange)="onCurrencyChange($event)">
+          @for (code of currencies; track code) {
+            <option [value]="code">{{ code }}</option>
+          }
+        </select>
+        <small>
+          Active symbol: {{ currencySymbol() }} — applied to new entries only.
+        </small>
+      </div>
+    </div>
+
+    <div class="currency-preview">
+      <span class="preview-label">New transactions will be recorded as</span>
+      <strong class="preview-amount">{{ currencySymbol() }} 0</strong>
+      <span class="preview-code">{{ selectedCurrency() }}</span>
+    </div>
+
+    <div class="settings-note">
+      <span class="settings-note-icon">ⓘ</span>
+      <p>
+        Changing your country or currency never touches existing records.
+        Each transaction keeps the currency it was saved with, so your
+        history remains exactly as you entered it.
+      </p>
+    </div>
+  </section>
+
 </div>

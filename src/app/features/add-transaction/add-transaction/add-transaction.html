@@ -1,0 +1,41 @@
+<div class="add-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">MONEY MANAGEMENT</span>
+      <h1>Add Transaction</h1>
+      <p>Record a new income or expense in one simple form.</p>
+    </div>
+
+    <app-month-selector
+      [value]="monthSelection.selectedMonth()"
+      (valueChange)="monthSelection.setMonth($event)">
+    </app-month-selector>
+  </div>
+
+  @if (savedFlag()) {
+    <div class="saved-banner" role="status">
+      <app-icon name="check" class="banner-icon"></app-icon>
+      Saved — the record now appears in History for
+      {{ monthSelection.selectedLabel() }}.
+    </div>
+  }
+
+  <section class="add-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Transaction details</h2>
+        <p>
+          Saved in the currently selected currency — existing records keep
+          their own currency.
+        </p>
+      </div>
+    </div>
+
+    <app-transaction-form
+      [defaultDate]="formDefaultDate()"
+      (saved)="onSaved($event)">
+    </app-transaction-form>
+  </section>
+
+</div>

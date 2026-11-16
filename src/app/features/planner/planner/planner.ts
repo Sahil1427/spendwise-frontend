@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { TransactionService } from '../../../services/transaction.service';
+import { SettingsService } from '../../../services/settings.service';
 import { DatePickerComponent } from '../../../shared/date-picker/date-picker';
 
 type PlannerView = 'list' | 'calendar';
@@ -14,6 +15,7 @@ type PlannerView = 'list' | 'calendar';
 })
 export class Planner {
   private transactionService = inject(TransactionService);
+  private settingsService = inject(SettingsService);
   private router = inject(Router);
 
   private readonly now = new Date();
@@ -246,10 +248,10 @@ export class Planner {
     return `${day}-${month}-${year}`;
   }
 
-  formatAmount(amount: number): string {
+  formatAmount(amount: number, currency?: string): string {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR',
+      currency: currency ?? this.settingsService.currency(),
       maximumFractionDigits: 2,
     }).format(amount);
   }

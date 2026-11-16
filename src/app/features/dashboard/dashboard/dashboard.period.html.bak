@@ -1,0 +1,156 @@
+<div class="dashboard">
+
+  <div class="welcome-section">
+    <div>
+      <h1>Good morning, Sahil 👋</h1>
+      <p>Here's what's happening with your money.</p>
+    </div>
+
+    <div class="dashboard-actions">
+      <select [(ngModel)]="selectedPeriod" aria-label="Select reporting period">
+        <option>This Month</option>
+        <option>Last Month</option>
+        <option>Last 3 Months</option>
+        <option>This Year</option>
+      </select>
+      <button class="add-transaction">+ Add Transaction</button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    @for (card of summaryCards; track card.title) {
+      <div class="summary-card" [class]="card.type">
+        <div class="card-top">
+          <span>{{ card.title }}</span>
+          <span class="card-icon">
+            @switch (card.icon) {
+              @case ('wallet') { ◈ }
+              @case ('income') { ↗ }
+              @case ('expense') { ↙ }
+              @case ('savings') { ◎ }
+            }
+          </span>
+        </div>
+
+        <h2>{{ card.amount }}</h2>
+
+        <div class="card-bottom">
+          <span class="change">{{ card.change }}</span>
+          <span>{{ card.description }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="main-grid">
+
+    <section class="panel income-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Income vs Expenses</h3>
+          <p>Your financial activity over the last 6 months</p>
+        </div>
+
+        <div class="chart-legend">
+          <span><i class="income-dot"></i> Income</span>
+          <span><i class="expense-dot"></i> Expenses</span>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart-grid">
+          @for (line of [100, 75, 50, 25, 0]; track line) {
+            <div class="chart-line">
+              <span>{{ line }}k</span>
+              <div></div>
+            </div>
+          }
+        </div>
+
+        <div class="chart-bars">
+          @for (item of monthlyData; track item.month) {
+            <div class="bar-group">
+              <div class="bars">
+                <div class="bar income-bar" [style.height.%]="item.income"></div>
+                <div class="bar expense-bar" [style.height.%]="item.expense"></div>
+              </div>
+              <span>{{ item.month }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="panel spending-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Spending Breakdown</h3>
+          <p>Where your money goes</p>
+        </div>
+        <span class="more-icon">•••</span>
+      </div>
+
+      <div class="spending-total">
+        <strong>{{ spendingTotal }}</strong>
+        <span>Total spending</span>
+      </div>
+
+      <div class="category-list">
+        @for (category of categories; track category.name) {
+          <div class="category-item">
+            <div class="category-info">
+              <span>{{ category.name }}</span>
+              <strong>{{ category.amount }}</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill"
+                   [style.width.%]="category.percentage"
+                   [style.background]="category.color">
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+  </div>
+
+  <section class="panel transactions-panel">
+    <div class="panel-header">
+      <div>
+        <h3>Recent Transactions</h3>
+        <p>Your latest financial activity</p>
+      </div>
+      <a routerLink="/transactions">View all →</a>
+    </div>
+
+    <div class="transaction-table">
+      <div class="table-header">
+        <span>TRANSACTION</span>
+        <span>CATEGORY</span>
+        <span>DATE</span>
+        <span>AMOUNT</span>
+      </div>
+
+      @for (transaction of transactions; track transaction.name) {
+        <div class="transaction-row">
+          <div class="transaction-name">
+            <div class="transaction-icon">{{ transaction.icon }}</div>
+            <strong>{{ transaction.name }}</strong>
+          </div>
+          <span class="transaction-category">{{ transaction.category }}</span>
+          <span class="transaction-date">{{ transaction.date }}</span>
+          <strong class="transaction-amount" [class]="transaction.type">
+            {{ transaction.amount }}
+          </strong>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="dashboard-footer">
+    <span>SpendWise · Your money, under control.</span>
+    <span>Showing: {{ selectedPeriod }}</span>
+  </div>
+
+</div>

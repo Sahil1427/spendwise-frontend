@@ -7,7 +7,9 @@
     aria-label="Choose transaction date"
     (click)="toggleCalendar()">
     <span>{{ displayValue }}</span>
-    <span class="date-picker-icon">▦</span>
+    <span class="date-picker-icon">
+      <app-icon name="calendar"></app-icon>
+    </span>
   </button>
 
   @if (showCalendar) {
@@ -16,9 +18,13 @@
         <strong>{{ monthNames[currentMonth] }} {{ currentYear }}</strong>
         <div class="calendar-navigation">
           <button type="button" class="calendar-arrow"
-            aria-label="Previous month" [disabled]="isPreviousMonthDisabled" (click)="previousMonth()">‹</button>
+            aria-label="Previous month" [disabled]="isPreviousMonthDisabled" (click)="previousMonth()">
+            <app-icon name="chevron-left" class="calendar-arrow-icon"></app-icon>
+          </button>
           <button type="button" class="calendar-arrow"
-            aria-label="Next month" [disabled]="isNextMonthDisabled" (click)="nextMonth()">›</button>
+            aria-label="Next month" [disabled]="isNextMonthDisabled" (click)="nextMonth()">
+            <app-icon name="chevron-right" class="calendar-arrow-icon"></app-icon>
+          </button>
         </div>
       </div>
 

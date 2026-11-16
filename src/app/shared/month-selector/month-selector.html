@@ -1,0 +1,44 @@
+<div class="month-selector" [class.open]="open">
+
+  <button
+    type="button"
+    class="month-selector-trigger"
+    (click)="toggleOpen()"
+    [attr.aria-expanded]="open"
+    aria-label="Select month">
+    <span class="month-selector-icon">
+      <app-icon name="calendar"></app-icon>
+    </span>
+    <span class="month-selector-copy">
+      <small>OVERVIEW PERIOD</small>
+      <strong>{{ selectedName }} {{ currentYear }}</strong>
+    </span>
+    <app-icon
+      name="chevron-down"
+      class="month-selector-chevron">
+    </app-icon>
+  </button>
+
+  @if (open) {
+    <div class="month-selector-menu" role="listbox">
+      @for (name of monthNames; track name; let index = $index) {
+        @if (isDisabled(valueFor(index))) {
+          <span class="month-option disabled" aria-disabled="true">
+            {{ name }} {{ currentYear }}
+          </span>
+        } @else {
+          <button
+            type="button"
+            role="option"
+            class="month-option"
+            [class.selected]="value === valueFor(index)"
+            [attr.aria-selected]="value === valueFor(index)"
+            (click)="select(valueFor(index))">
+            {{ name }} {{ currentYear }}
+          </button>
+        }
+      }
+    </div>
+  }
+
+</div>

@@ -1,113 +1,114 @@
 <div class="dashboard">
 
-  <div class="welcome-section">
+  <div class="dash-header">
     <div>
-      <h1>Good morning, Sahil 👋</h1>
-      <p>Here's what's happening with your money.</p>
+      <h1 class="greeting">{{ greeting() }}</h1>
+      <p>Here's how your money worked in
+        <strong>{{ monthSelection.selectedLabel() }}</strong>.</p>
     </div>
 
-    <div class="dashboard-actions">
-      <select [(ngModel)]="selectedPeriod" aria-label="Select reporting period">
-        <option>This Month</option>
-        <option>Last Month</option>
-        <option>Last 3 Months</option>
-        <option>This Year</option>
-      </select>
-      <button class="add-transaction">+ Add Transaction</button>
+    <div class="dash-header-actions">
+      <app-month-selector
+        [value]="monthSelection.selectedMonth()"
+        (valueChange)="monthSelection.setMonth($event)">
+      </app-month-selector>
+
+      <a class="primary-button" routerLink="/add">
+        <app-icon name="plus"></app-icon> Add Transaction
+      </a>
     </div>
   </div>
 
   <div class="summary-grid">
-    @for (card of summaryCards; track card.title) {
-      <div class="summary-card" [class]="card.type">
-        <div class="card-top">
-          <span>{{ card.title }}</span>
-          <span class="card-icon">
-            @switch (card.icon) {
-              @case ('wallet') { ◈ }
-              @case ('income') { ↗ }
-              @case ('expense') { ↙ }
-              @case ('savings') { ◎ }
-            }
+    @for (card of summaryCards(); track card.label) {
+      <div class="summary-card" [class.negative-card]="card.tone === 'negative'">
+        <div class="summary-top">
+          <div>
+            <span class="summary-label">{{ card.label }}</span>
+            <h2 class="summary-value" [class.negative-value]="card.tone === 'negative'">
+              {{ card.value }}
+            </h2>
+          </div>
+          <span
+            class="summary-icon"
+            [class.negative-icon]="card.tone === 'negative'">
+            <app-icon [name]="card.icon"></app-icon>
           </span>
         </div>
-
-        <h2>{{ card.amount }}</h2>
-
-        <div class="card-bottom">
-          <span class="change">{{ card.change }}</span>
-          <span>{{ card.description }}</span>
-        </div>
+        <small>{{ card.caption }}</small>
       </div>
     }
   </div>
 
-  <div class="main-grid">
+  <div class="dash-grid">
 
-    <section class="panel income-panel">
+    <section class="panel pie-panel">
       <div class="panel-header">
         <div>
-          <h3>Income vs Expenses</h3>
-          <p>Your financial activity over the last 6 months</p>
-        </div>
-
-        <div class="chart-legend">
-          <span><i class="income-dot"></i> Income</span>
-          <span><i class="expense-dot"></i> Expenses</span>
+          <h3>Spending breakdown</h3>
+          <p>Where the money went · {{ monthSelection.selectedLabel() }}</p>
         </div>
       </div>
 
-      <div class="chart">
-        <div class="chart-grid">
-          @for (line of [100, 75, 50, 25, 0]; track line) {
-            <div class="chart-line">
-              <span>{{ line }}k</span>
-              <div></div>
+      @if (spendSlices().gradient) {
+        <div class="pie-wrap">
+          <div class="pie" [style.background]="spendSlices().gradient">
+            <div class="pie-hole">
+              <span>Total spent</span>
+              <strong>{{ money(expenseTotal()) }}</strong>
             </div>
-          }
-        </div>
+          </div>
 
-        <div class="chart-bars">
-          @for (item of monthlyData; track item.month) {
-            <div class="bar-group">
-              <div class="bars">
-                <div class="bar income-bar" [style.height.%]="item.income"></div>
-                <div class="bar expense-bar" [style.height.%]="item.expense"></div>
+          <div class="pie-legend">
+            @for (slice of spendSlices().slices; track slice.name) {
+              <div class="legend-row">
+                <span class="legend-dot" [style.background]="slice.color"></span>
+                <span class="legend-name">{{ slice.name }}</span>
+                <strong>{{ slice.amount }}</strong>
+                <small>{{ slice.share }}</small>
               </div>
-              <span>{{ item.month }}</span>
-            </div>
-          }
+            }
+          </div>
         </div>
-      </div>
+      } @else {
+        <div class="panel-empty">
+          <app-icon name="pie" class="panel-empty-icon"></app-icon>
+          <strong>No spending this month</strong>
+          <p>The pie fills up as soon as you record expenses
+            for {{ monthSelection.selectedLabel() }}.</p>
+        </div>
+      }
     </section>
 
-    <section class="panel spending-panel">
+    <section class="panel trend-panel">
       <div class="panel-header">
         <div>
-          <h3>Spending Breakdown</h3>
-          <p>Where your money goes</p>
+          <h3>Month comparison</h3>
+          <p>Every month of {{ monthSelection.currentYear }} · income vs expenses</p>
         </div>
-        <span class="more-icon">•••</span>
+        <div class="trend-legend">
+          <span><i class="dot income-dot"></i> Income</span>
+          <span><i class="dot expense-dot"></i> Expenses</span>
+        </div>
       </div>
 
-      <div class="spending-total">
-        <strong>₹40,350</strong>
-        <span>Total spending</span>
-      </div>
-
-      <div class="category-list">
-        @for (category of categories; track category.name) {
-          <div class="category-item">
-            <div class="category-info">
-              <span>{{ category.name }}</span>
-              <strong>{{ category.amount }}</strong>
+      <div class="year-chart">
+        @for (month of yearTrend(); track month.month) {
+          <div
+            class="chart-month"
+            [class.selected]="month.selected"
+            [class.dim]="!month.hasData">
+            <div class="bars">
+              <span
+                class="bar income-bar"
+                [style.height.%]="month.incomeHeight"
+                [title]="'Income: ' + month.incomeValue"></span>
+              <span
+                class="bar expense-bar"
+                [style.height.%]="month.expenseHeight"
+                [title]="'Expenses: ' + month.expenseValue"></span>
             </div>
-            <div class="progress-track">
-              <div class="progress-fill"
-                   [style.width.%]="category.percentage"
-                   [style.background]="category.color">
-              </div>
-            </div>
+            <span class="chart-label">{{ month.label }}</span>
           </div>
         }
       </div>
@@ -115,42 +116,58 @@
 
   </div>
 
-  <section class="panel transactions-panel">
+  <section class="panel recent-panel">
     <div class="panel-header">
       <div>
-        <h3>Recent Transactions</h3>
-        <p>Your latest financial activity</p>
+        <h3>Recent transactions</h3>
+        <p>Latest records of {{ monthSelection.selectedLabel() }}</p>
       </div>
-      <a routerLink="/transactions">View all →</a>
+      <a class="panel-link" routerLink="/history">View all <app-icon name="arrow-right"></app-icon></a>
     </div>
 
-    <div class="transaction-table">
-      <div class="table-header">
-        <span>TRANSACTION</span>
-        <span>CATEGORY</span>
-        <span>DATE</span>
-        <span>AMOUNT</span>
-      </div>
-
-      @for (transaction of transactions; track transaction.name) {
-        <div class="transaction-row">
-          <div class="transaction-name">
-            <div class="transaction-icon">{{ transaction.icon }}</div>
-            <strong>{{ transaction.name }}</strong>
-          </div>
-          <span class="transaction-category">{{ transaction.category }}</span>
-          <span class="transaction-date">{{ transaction.date }}</span>
-          <strong class="transaction-amount" [class]="transaction.type">
-            {{ transaction.amount }}
-          </strong>
+    @if (recent().length > 0) {
+      <div class="recent-table">
+        <div class="recent-head">
+          <span>TRANSACTION</span>
+          <span>CATEGORY</span>
+          <span>DATE</span>
+          <span class="right">AMOUNT</span>
         </div>
-      }
-    </div>
+
+        @for (item of recent(); track $index) {
+          <div class="recent-row">
+            <div class="recent-name">
+              <span
+                class="recent-icon"
+                [class.income-value]="item.type === 'income'"
+                [class.expense-value]="item.type === 'expense'">
+                <app-icon [name]="item.icon"></app-icon>
+              </span>
+              <strong>{{ item.name }}</strong>
+            </div>
+            <span class="recent-category">{{ item.category }}</span>
+            <span class="recent-date">{{ item.date }}</span>
+            <strong class="right"
+              [class.income-value]="item.type === 'income'"
+              [class.expense-value]="item.type === 'expense'">
+              {{ item.amount }}
+            </strong>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="panel-empty">
+          <app-icon name="inbox" class="panel-empty-icon"></app-icon>
+        <strong>Nothing recorded yet</strong>
+        <p>Add your first transaction for
+          {{ monthSelection.selectedLabel() }} to see it here.</p>
+      </div>
+    }
   </section>
 
   <div class="dashboard-footer">
     <span>SpendWise · Your money, under control.</span>
-    <span>Demo data · November 2026</span>
+    <span>Showing · {{ monthSelection.selectedLabel() }}</span>
   </div>
 
 </div>

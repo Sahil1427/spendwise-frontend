@@ -9,9 +9,12 @@ import {
   SimpleChanges
 } from '@angular/core';
 
+import { Icon } from '../icon/icon';
+
 @Component({
   selector: 'app-date-picker',
   standalone: true,
+  imports: [Icon],
   templateUrl: './date-picker.html',
   styleUrl: './date-picker.scss'
 })

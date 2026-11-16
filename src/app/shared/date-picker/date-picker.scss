@@ -38,8 +38,14 @@
 }
 
 .date-picker-icon {
+  display: grid;
+  place-items: center;
   color: var(--accent);
-  font-size: 17px;
+
+  app-icon {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .calendar-popup {
@@ -76,12 +82,18 @@
 .calendar-arrow {
   width: 30px;
   height: 30px;
+  display: grid;
+  place-items: center;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--surface-secondary);
   color: var(--text-primary);
-  font-size: 20px;
   cursor: pointer;
+
+  .calendar-arrow-icon {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .calendar-arrow:hover {

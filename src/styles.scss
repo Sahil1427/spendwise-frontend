@@ -2,6 +2,81 @@
   box-sizing: border-box;
 }
 
+/* ---- Global polish ------------------------------------------------------- */
+
+app-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  line-height: 0;
+}
+
+app-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 45%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  background-clip: padding-box;
+}
+
+/* Money figures align column-wise */
+:is(.summary-value, .summary-chip strong, .amount-cell,
+   .legend-row strong, .report-row strong, .comparison-row strong,
+   .recent-row strong, .summary-card strong, .preview-amount) {
+  font-variant-numeric: tabular-nums;
+}
+
+.primary-button app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.panel-link app-icon {
+  width: 13px;
+  height: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root,
 :root[data-theme='white'] {
   color-scheme: light;

@@ -3,7 +3,9 @@
   <aside class="sidebar" (click)="$event.stopPropagation()">
 
     <div class="brand">
-      <div class="brand-icon">S</div>
+      <div class="brand-icon">
+        <app-icon name="wallet"></app-icon>
+      </div>
       <div>
         <h2>SpendWise</h2>
         <span>Personal Finance</span>
@@ -13,46 +15,30 @@
     <div class="nav-section">
       <p class="nav-label">OVERVIEW</p>
       <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">◫</span>
+        <app-icon name="dashboard" class="nav-icon"></app-icon>
         <span>Dashboard</span>
+      </a>
+      <a routerLink="/reports" routerLinkActive="active" class="nav-item">
+        <app-icon name="report" class="nav-icon"></app-icon>
+        <span>Reports</span>
       </a>
     </div>
 
     <div class="nav-section">
       <p class="nav-label">MONEY MANAGEMENT</p>
-      <a routerLink="/transactions" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">↔</span>
-        <span>Transactions</span>
+      <a routerLink="/add" routerLinkActive="active" class="nav-item">
+        <app-icon name="plus" class="nav-icon"></app-icon>
+        <span>Add Transaction</span>
       </a>
-      <a routerLink="/planner" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">◷</span>
-        <span>Planner & Reminders</span>
-      </a>
-      <a routerLink="/accounts" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">▣</span>
-        <span>Accounts</span>
-      </a>
-      <a routerLink="/budgets" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">◷</span>
-        <span>Budgets</span>
-      </a>
-      <a routerLink="/savings" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">◈</span>
-        <span>Savings Goals</span>
-      </a>
-    </div>
-
-    <div class="nav-section">
-      <p class="nav-label">INSIGHTS</p>
-      <a routerLink="/analytics" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">▥</span>
-        <span>Analytics</span>
+      <a routerLink="/history" routerLinkActive="active" class="nav-item">
+        <app-icon name="history" class="nav-icon"></app-icon>
+        <span>History</span>
       </a>
     </div>
 
     <div class="sidebar-bottom">
       <a routerLink="/settings" routerLinkActive="active" class="nav-item">
-        <span class="nav-icon">⚙</span>
+        <app-icon name="settings" class="nav-icon"></app-icon>
         <span>Settings</span>
       </a>
 
@@ -62,6 +48,11 @@
           <strong>Sahil</strong>
           <span>Personal Workspace</span>
         </div>
+      </div>
+
+      <div class="sidebar-meta">
+        <app-icon name="shield"></app-icon>
+        <span>Local data · v1.0</span>
       </div>
     </div>
 
@@ -76,7 +67,7 @@
              class="dashboard-back-button"
              aria-label="Back to Dashboard"
              title="Back to Dashboard">
-            <span>←</span>
+            <app-icon name="arrow-left"></app-icon>
           </a>
         }
         <h3>My Finances</h3>
@@ -92,7 +83,7 @@
             (click)="toggleThemeMenu()"
             [attr.aria-expanded]="themeMenuOpen"
             aria-label="Change appearance">
-            <span class="theme-trigger-icon">◐</span>
+            <app-icon name="sun" class="theme-trigger-icon"></app-icon>
             <span class="theme-trigger-label">Appearance</span>
             <span class="theme-trigger-current">{{ themeLabel }}</span>
           </button>
@@ -119,7 +110,7 @@
                   </span>
 
                   @if (theme === item.id) {
-                    <span class="theme-check">✓</span>
+                    <app-icon name="check" class="theme-check"></app-icon>
                   }
                 </button>
               }
@@ -128,7 +119,9 @@
 
         </div>
 
-        <button type="button" class="icon-button" aria-label="Notifications">♧</button>
+        <button type="button" class="icon-button" aria-label="Notifications">
+          <app-icon name="bell"></app-icon>
+        </button>
         <div class="topbar-avatar">S</div>
 
       </div>

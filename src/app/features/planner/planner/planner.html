@@ -186,7 +186,7 @@
               <div class="activity-amount"
                 [class.income-amount]="item.type === 'income'"
                 [class.expense-amount]="item.type === 'expense'">
-                {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount, item.currency) }}
               </div>
             </article>
           }
@@ -263,7 +263,7 @@
                         {{ item.description || item.category }}
                       </span>
                       <span class="calendar-activity-amount">
-                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount, item.currency) }}
                       </span>
                     </div>
                   }
@@ -293,7 +293,7 @@
                         <span>{{ item.category }}</span>
                       </div>
                       <strong class="hover-activity-amount">
-                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                        {{ item.type === 'income' ? '+' : '-' }}{{ formatAmount(item.amount, item.currency) }}
                       </strong>
                     </div>
                   }
