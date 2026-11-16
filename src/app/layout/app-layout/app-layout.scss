@@ -1,11 +1,15 @@
+/* The shell is pinned to exactly one viewport: the sidebar and the top
+ * bar never scroll with the page. Only .page-content scrolls. */
 :host {
   display: block;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--app-bg);
   color: var(--text-primary);
   transition: background 0.25s ease, color 0.25s ease;
@@ -138,35 +142,6 @@
   margin-top: 4px;
 }
 
-.logout-button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 11px 12px;
-  margin-top: 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--danger) 50%, transparent);
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
-    color: var(--danger);
-  }
-
-  .logout-icon {
-    width: 15px;
-    height: 15px;
-  }
-}
-
 .sidebar-meta {
   display: flex;
   align-items: center;
@@ -183,50 +158,171 @@
   }
 }
 
-.profile {
+.user-picker {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 20px 5px 0;
-  margin-top: 20px;
-  border-top: 1px solid var(--border);
 }
 
-.avatar,
+/* Topbar: avatar button + account dropdown */
 .topbar-avatar {
-  width: 36px;
-  height: 36px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 5px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--surface-secondary);
+    border-color: var(--border);
+  }
+
+  .avatar-chevron {
+    width: 12px;
+    height: 12px;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+  }
+
+  &[aria-expanded='true'] .avatar-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.avatar-letter {
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  flex: 0 0 36px;
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.profile-info {
+.user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 1000;
+  width: 230px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 14px 40px rgba(20, 30, 50, 0.16);
+  animation: user-menu-in 0.14s ease;
+}
+
+@keyframes user-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.user-menu-heading {
+  padding: 9px 10px 8px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.user-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.user-menu-copy {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  line-height: 1.25;
 
   strong {
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: 12.5px;
   }
 
-  span {
+  small {
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
+  }
+}
+
+.user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+
+  app-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--text-secondary);
+  }
+
+  &:hover {
+    background: var(--surface-secondary);
+  }
+
+  &.danger,
+  &.danger app-icon {
+    color: var(--danger);
+  }
+
+  &.danger:hover {
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
   }
 }
 
 .main-content {
   flex: 1;
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .topbar {
+  flex: none;
   height: 85px;
   padding: 0 36px;
   display: flex;
@@ -241,6 +337,14 @@
     color: var(--text-primary);
     font-size: 17px;
   }
+}
+
+/* The page body is the ONLY region that scrolls (sidebar + topbar stay put). */
+.page-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .workspace-label {
@@ -279,8 +383,8 @@
   }
 }
 
+/* page-content base padding (scroll behaviour lives above) */
 .page-content {
-  min-height: calc(100vh - 85px);
   padding: 32px 36px;
 }
 
@@ -427,8 +531,6 @@
     .brand > div:last-child,
     .nav-label,
     .nav-item span:last-child,
-    .profile-info,
-    .profile,
     .sidebar-meta {
       display: none;
     }

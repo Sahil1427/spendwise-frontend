@@ -1,4 +1,4 @@
-<div class="app-shell" (click)="closeThemeMenu()">
+<div class="app-shell" (click)="closeMenus()">
 
   <aside class="sidebar" (click)="$event.stopPropagation()">
 
@@ -39,27 +39,6 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <a routerLink="/settings" routerLinkActive="active" class="nav-item">
-        <app-icon name="settings" class="nav-icon"></app-icon>
-        <span>Settings</span>
-      </a>
-
-      <div class="profile">
-        <div class="avatar">{{ avatarLetter() }}</div>
-        <div class="profile-info">
-          <strong>{{ displayName() }}</strong>
-          <span>Personal Workspace</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="logout-button"
-        (click)="onLogout()">
-        <app-icon name="logout" class="logout-icon"></app-icon>
-        <span>Log out</span>
-      </button>
-
       <div class="sidebar-meta">
         <app-icon name="shield"></app-icon>
         <span>Local data · v1.0</span>
@@ -129,7 +108,39 @@
 
         </div>
 
-        <div class="topbar-avatar">{{ avatarLetter() }}</div>
+        <div class="user-picker" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="topbar-avatar"
+            (click)="toggleUserMenu()"
+            [attr.aria-expanded]="userMenuOpen"
+            aria-label="Account menu">
+            <span class="avatar-letter">{{ avatarLetter() }}</span>
+            <app-icon name="chevron-down" class="avatar-chevron"></app-icon>
+          </button>
+
+          @if (userMenuOpen) {
+            <div class="user-menu">
+              <div class="user-menu-heading">Account</div>
+              <div class="user-menu-profile">
+                <span class="user-menu-avatar">{{ avatarLetter() }}</span>
+                <span class="user-menu-copy">
+                  <strong>{{ displayName() }}</strong>
+                  <small>{{ userEmail() }}</small>
+                </span>
+              </div>
+              <button type="button" class="user-menu-item" (click)="onOpenSettings()">
+                <app-icon name="settings"></app-icon>
+                <span>Settings</span>
+              </button>
+              <button type="button" class="user-menu-item danger" (click)="onUserLogout()">
+                <app-icon name="logout"></app-icon>
+                <span>Log out</span>
+              </button>
+            </div>
+          }
+
+        </div>
 
       </div>
     </header>

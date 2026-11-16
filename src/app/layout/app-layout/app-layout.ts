@@ -23,7 +23,41 @@ export class AppLayout implements OnInit {
     return name ? name.charAt(0) : 'S';
   }
 
+  userEmail(): string {
+    const name = this.auth.displayName();
+    return name ? `${name.toLowerCase()}@spendwise.local` : 'guest@spendwise.local';
+  }
+
+  userMenuOpen = false;
+
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
+    this.themeMenuOpen = false;
+  }
+
+  closeUserMenu(): void {
+    this.userMenuOpen = false;
+  }
+
+  /** Closes any dropdown (theme picker / avatar menu) on a click outside. */
+  closeMenus(): void {
+    this.themeMenuOpen = false;
+    this.userMenuOpen = false;
+  }
+
+  onOpenSettings(): void {
+    this.userMenuOpen = false;
+    this.router.navigate(['/settings']);
+  }
+
+  onUserLogout(): void {
+    this.userMenuOpen = false;
+    this.onLogout();
+  }
+
   onLogout(): void {
+    this.userMenuOpen = false;
+    this.themeMenuOpen = false;
     this.auth.logout();
     this.router.navigate(['/login']);
   }
