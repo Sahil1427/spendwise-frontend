@@ -307,69 +307,6 @@
   </section>
 
   <section class="settings-panel">
-    <div class="panel-heading">
-      <div>
-        <h2>Backend</h2>
-        <p>
-          Connect this device to the SpendWise backend (Java · port 8080).
-          While connected, every change is mirrored to the server and the app
-          re‑syncs on start; your device cache keeps everything working
-          offline.
-        </p>
-      </div>
-      <span class="panel-chip">
-        <app-icon
-          [name]="backend.connected() ? 'check' : backend.status() === 'error' ? 'alert' : 'inbox'"></app-icon>
-        {{ backendStatusChip() }}
-      </span>
-    </div>
-
-    <div class="cap-row">
-      <div class="cap-field">
-        <label for="backend-url">Backend URL</label>
-        <input
-          id="backend-url"
-          type="text"
-          class="field-input"
-          name="backendUrl"
-          placeholder="http://localhost:8080"
-          [disabled]="backend.connected() || backend.status() === 'connecting'"
-          [ngModel]="backendUrlDraft()"
-          (ngModelChange)="backendUrlDraft.set($event)">
-        <small>
-          Start it from the backend folder:
-          <code>mvn org.springframework.boot:spring-boot-maven-plugin:run</code>
-        </small>
-      </div>
-
-      <div class="cap-actions">
-        @if (backend.status() === 'connecting') {
-          <span class="cap-saved" role="status">Checking…</span>
-        }
-        @if (backend.connected()) {
-          <button type="button" class="clear-cap-button" (click)="disconnectBackend()">
-            <app-icon name="logout"></app-icon> Disconnect
-          </button>
-        } @else {
-          <button
-            type="button"
-            class="primary-button"
-            [disabled]="backend.status() === 'connecting'"
-            (click)="connectBackend()">
-            <app-icon name="check"></app-icon> Connect
-          </button>
-        }
-      </div>
-    </div>
-
-    @if (backend.status() === 'error') {
-      <p class="cap-error">{{ backend.message() }}</p>
-    } @else if (backend.connected()) {
-      <p class="cap-hint">{{ backend.message() }}</p>
-    }
-  </section>
-
-  <section class="settings-panel">
     <div class="settings-note">
       <span class="settings-note-icon">ⓘ</span>
       <p>

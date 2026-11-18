@@ -124,13 +124,14 @@ export class AppLayout implements OnInit {
     // surface through the converter's source label when the user opens it.
     void this.convertService.ensureFresh();
 
-    // Cross-device sync: if the app was connected to the backend before,
-    // quietly re-fetch the server state and adopt it (records + settings).
+    // Backend sync (automatic): when the backend is up it becomes the
+    // connected data source and the server state is adopted; when it's
+    // down the app silently runs fully local. No UI involvement.
     void this.bootBackendSync();
   }
 
   private async bootBackendSync(): Promise<void> {
-    if (!(await this.backend.refreshIfConnected())) {
+    if (!(await this.backend.autoConnect())) {
       return;
     }
     try {

@@ -91,21 +91,23 @@ export class BackendService {
   }
 
   /**
-   * Quiet start-up sync: only when the persisted flag says we were
-   * connected before. Returns true when the fetch succeeded.
+   * Automatic start-up sync: probe the backend; when reachable, mark the
+   * app connected (mirroring activates) so the caller can adopt the server
+   * state. When absent, the app simply stays fully local — no UI feedback.
    */
-  async refreshIfConnected(): Promise<boolean> {
-    if (!this.prefs.connected) {
-      return false;
-    }
+  async autoConnect(): Promise<boolean> {
+    this.setStatus('connecting', 'Connecting to the backend…');
     try {
-      await this.call('/transactions');
-      await this.call('/settings');
-      this.setStatus('connected');
+      const health = await this.call<{ records?: number }>('/health');
+      this.setStatus(
+        'connected',
+        `Backend connected · ${health.records ?? 0} records`
+      );
+      this.persistPrefs(true);
       return true;
-    } catch (err) {
-      // Keep the flag; the device cache remains authoritative meanwhile.
-      this.setStatus('error', `Backend unreachable at start — using device cache. ${this.describeError(err)}`);
+    } catch {
+      this.setStatus('idle', '');
+      this.persistPrefs(false);
       return false;
     }
   }
