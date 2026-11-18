@@ -1,6 +1,7 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 import { SettingsService } from './settings.service';
+import { BackendService } from './backend.service';
 import { DEMO_TRANSACTIONS } from './demo-seed';
 import type { ImportEntry } from './file-parser.service';
 
@@ -54,6 +55,31 @@ export class TransactionService {
   readonly customCategories = signal<Record<TransactionType, string[]>>(
     this.loadCustomCategories()
   );
+
+  private readonly backend = inject(BackendService);
+
+  /**
+   * Mirror a just-applied local write to the backend while the
+   * connection is active. Fire-and-forget: the UI already updated (the
+   * local cache stays), so a network failure only surfaces as a message
+   * in the Settings → Backend panel.
+   */
+  private mirror(run: () => Promise<unknown>): void {
+    if (!this.backend.connected()) {
+      return;
+    }
+    run().catch(err => this.backend.reportMirrorError(err));
+  }
+
+  /**
+   * Adopt a freshly fetched server dataset as the device's records
+   * (connect flow / start-up sync). Replaces the local cache so the
+   * device never drifts from the backend while connected.
+   */
+  adoptRemote(items: Transaction[]): void {
+    this.transactions.set(items);
+    this.persistTransactions();
+  }
 
   readonly defaultCategories: Record<TransactionType, string[]> = {
     income: [
@@ -174,6 +200,7 @@ export class TransactionService {
     const items = DEMO_TRANSACTIONS.map(item => ({ ...item, name: item.name ?? undefined }));
     this.transactions.set(items);
     this.persistTransactions();
+    this.mirror(() => this.backend.seedDemo());
     return items.length;
   }
 
@@ -182,6 +209,7 @@ export class TransactionService {
     const removed = this.transactions().length;
     this.transactions.set([]);
     this.persistTransactions();
+    this.mirror(() => this.backend.clear());
     return removed;
   }
 
@@ -216,6 +244,7 @@ export class TransactionService {
 
     this.transactions.update(current => [...current, ...items]);
     this.persistTransactions();
+    this.mirror(() => this.backend.bulk(items, currency));
     return items.length;
   }
 
@@ -248,6 +277,7 @@ export class TransactionService {
     }));
 
     this.persistCategories();
+    this.mirror(() => this.backend.addCategory(type, cleanName));
     return true;
   }
 
@@ -284,6 +314,11 @@ export class TransactionService {
 
     this.persistCategories();
     this.persistTransactions();
+    this.mirror(() =>
+      this.backend.removeCategory(type, oldName).then(() =>
+        this.backend.addCategory(type, cleanName)
+      )
+    );
     return true;
   }
 
@@ -294,6 +329,7 @@ export class TransactionService {
     }));
 
     this.persistCategories();
+    this.mirror(() => this.backend.removeCategory(type, name));
   }
 
   addTransaction(transaction: AddPayload): void {
@@ -308,6 +344,7 @@ export class TransactionService {
 
     this.transactions.update(items => [newTransaction, ...items]);
     this.persistTransactions();
+    this.mirror(() => this.backend.create(newTransaction));
   }
 
   updateTransaction(
@@ -324,6 +361,10 @@ export class TransactionService {
     );
 
     this.persistTransactions();
+    this.mirror(() => {
+      const merged = this.transactions().find(item => item.id === id);
+      return merged ? this.backend.update(id, merged) : Promise.resolve();
+    });
   }
 
   completePlannerActivity(id: string): void {
@@ -342,6 +383,7 @@ export class TransactionService {
     );
 
     this.persistTransactions();
+    this.mirror(() => this.backend.completePlanner(id));
   }
 
   reschedulePlannerActivity(id: string, newDate: string): boolean {
@@ -387,6 +429,7 @@ export class TransactionService {
 
     if (updated) {
       this.persistTransactions();
+      this.mirror(() => this.backend.reschedulePlanner(id, newDate));
     }
 
     return updated;
@@ -402,6 +445,10 @@ export class TransactionService {
     );
 
     this.persistTransactions();
+    this.mirror(() => {
+      const merged = this.transactions().find(item => item.id === id);
+      return merged ? this.backend.update(id, merged) : Promise.resolve();
+    });
   }
 
   deleteTransaction(id: string): void {
@@ -410,5 +457,6 @@ export class TransactionService {
     );
 
     this.persistTransactions();
+    this.mirror(() => this.backend.remove(id));
   }
 }

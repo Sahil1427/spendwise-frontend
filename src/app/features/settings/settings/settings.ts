@@ -6,6 +6,7 @@ import {
 } from '../../../services/settings.service';
 import { TransactionService } from '../../../services/transaction.service';
 import { AssistantService } from '../../../services/assistant.service';
+import { BackendService } from '../../../services/backend.service';
 import { Icon } from '../../../shared/icon/icon';
 
 @Component({
@@ -21,6 +22,9 @@ export class Settings {
   /** Draft fields + save/clear actions for the AI assistant panel. */
   readonly assistant = inject(AssistantService);
   readonly aiSaved = signal(false);
+
+  /** Backend connection panel (Settings → Backend). */
+  readonly backend = inject(BackendService);
 
   /** Live record count on this device (for the Local data panel). */
   readonly recordCount = computed(() => this.transactions.transactions().length);
@@ -76,6 +80,28 @@ export class Settings {
     this.assistant.clearKey();
   }
 
+  /** Persist the URL draft, health-check, then adopt the server state. */
+  connectBackend(): void {
+    this.backend.setBaseUrl(String(this.backendUrlDraft() ?? ''));
+    void this.backend.connect().then(ok => {
+      if (!ok) {
+        return;
+      }
+      void this.backend.fetchTransactions().then(items => {
+        this.transactions.adoptRemote(items);
+      });
+      void this.backend.fetchSettingsSettings().then(prefs => {
+        if (prefs) {
+          this.settingsService.adoptRemoteSettings(prefs);
+        }
+      });
+    });
+  }
+
+  disconnectBackend(): void {
+    this.backend.disconnect();
+  }
+
   /** Wipe every record after an explicit confirm (presentation reset). */
   clearAllRecords(): void {
     if (this.recordCount() === 0) {
@@ -128,6 +154,23 @@ export class Settings {
   readonly currencySymbol = computed(() =>
     this.settingsService.symbolFor(this.selectedCurrency())
   );
+
+  /** Backend connection state (template helpers). */
+  readonly backendUrlDraft = signal(this.backend.baseUrl());
+
+  backendStatusChip(): string {
+    const status = this.backend.status();
+    if (this.backend.connected()) {
+      return 'Connected';
+    }
+    if (status === 'connecting') {
+      return 'Checking…';
+    }
+    if (status === 'error') {
+      return 'Unreachable';
+    }
+    return 'Not connected';
+  }
 
   // Existing records are never modified: only new transactions
   // use the currently selected currency.

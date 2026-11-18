@@ -5,6 +5,9 @@ import { Chatbot } from '../../shared/chatbot/chatbot';
 import { CurrencyConverter } from '../../shared/currency-converter/currency-converter';
 import { Calculator } from '../../shared/calculator/calculator';
 import { AuthService } from '../../services/auth.service';
+import { BackendService } from '../../services/backend.service';
+import { SettingsService } from '../../services/settings.service';
+import { TransactionService } from '../../services/transaction.service';
 import { CurrencyConvertService } from '../../services/currency-convert.service';
 
 type Theme = 'white' | 'dark' | 'cosmic-blue' | 'classic';
@@ -26,6 +29,9 @@ export class AppLayout implements OnInit {
   @ViewChild('calcPop') calcPop: Calculator | undefined;
 
   private readonly convertService = inject(CurrencyConvertService);
+  private readonly backend = inject(BackendService);
+  private readonly transactions = inject(TransactionService);
+  private readonly settings = inject(SettingsService);
 
   readonly displayName = this.auth.displayName;
 
@@ -117,6 +123,28 @@ export class AppLayout implements OnInit {
     // Daily market-rate refresh (silent, at most once per day). Rates
     // surface through the converter's source label when the user opens it.
     void this.convertService.ensureFresh();
+
+    // Cross-device sync: if the app was connected to the backend before,
+    // quietly re-fetch the server state and adopt it (records + settings).
+    void this.bootBackendSync();
+  }
+
+  private async bootBackendSync(): Promise<void> {
+    if (!(await this.backend.refreshIfConnected())) {
+      return;
+    }
+    try {
+      const [items, prefs] = await Promise.all([
+        this.backend.fetchTransactions(),
+        this.backend.fetchSettingsSettings(),
+      ]);
+      this.transactions.adoptRemote(items);
+      if (prefs) {
+        this.settings.adoptRemoteSettings(prefs);
+      }
+    } catch {
+      // Cache stays authoritative; the Settings panel shows the failure.
+    }
   }
 
   toggleThemeMenu(): void {

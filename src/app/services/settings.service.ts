@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { BackendService } from './backend.service';
 
 export interface CountryOption {
   code: string;
@@ -46,6 +47,7 @@ export class SettingsService {
   ];
 
   private readonly preferences = signal<SettingsPreferences>(this.load());
+  private readonly backend = inject(BackendService);
 
   readonly currency = computed(() => this.preferences().currency);
   readonly country = computed(() => this.preferences().country);
@@ -108,6 +110,7 @@ export class SettingsService {
     }));
 
     this.persist();
+    this.mirrorSettings();
   }
 
   setCurrency(code: string): void {
@@ -119,6 +122,7 @@ export class SettingsService {
     }));
 
     this.persist();
+    this.mirrorSettings();
   }
 
   /** Monthly saving target; pass null to clear it. */
@@ -128,6 +132,32 @@ export class SettingsService {
       savingCap: value,
     }));
 
+    this.mirrorSettings();
+  }
+
+  /**
+   * Apply the server's settings as the device's (connect / start-up sync),
+   * so the backend stays authoritative while connected.
+   */
+  adoptRemoteSettings(prefs: SettingsPreferences): void {
+    this.preferences.set({
+      country: prefs.country?.toUpperCase() || 'IN',
+      currency: prefs.currency?.toUpperCase() || 'INR',
+      savingCap:
+        typeof prefs.savingCap === 'number' && prefs.savingCap > 0
+          ? prefs.savingCap
+          : null,
+    });
+    this.persist();
+  }
+
+  /** Fire-and-forget mirror of the current prefs (offline-safe). */
+  private mirrorSettings(): void {
+    if (!this.backend.connected()) return;
+    const prefs = this.preferences();
+    this.backend
+      .saveSettings({ country: prefs.country, currency: prefs.currency, savingCap: prefs.savingCap })
+      .catch(err => this.backend.reportMirrorError(err));
     this.persist();
   }
 
