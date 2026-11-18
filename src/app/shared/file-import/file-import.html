@@ -1,0 +1,166 @@
+<div class="import-backdrop" (click)="setBackground($event)">
+  <section class="import-card" role="dialog" aria-modal="true" aria-label="Import records">
+
+    <header class="import-head">
+      <div class="import-title">
+        <span class="import-tile"><app-icon name="upload"></app-icon></span>
+        <div>
+          <h2>Import records</h2>
+          <p>Paste in a client file — their income &amp; expense sheet, statement,
+            or even a photo of it — and it lands straight in your records.</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="import-close"
+        aria-label="Close import dialog"
+        (click)="close.emit()">
+        <app-icon name="close"></app-icon>
+      </button>
+    </header>
+
+    <div class="import-target">
+      <label class="month-pick" [class.month-pick-required]="targetMonth() === ''">
+        <span class="month-pick-label">Import into *</span>
+        <select
+          [value]="targetMonth()"
+          (change)="onMonthChanged($event)"
+          aria-label="Target month (required)">
+          <option value="" disabled>Select a month…</option>
+          @for (month of monthOptions; track month.value) {
+            <option [value]="month.value">{{ month.label }} {{ year }}</option>
+          }
+        </select>
+      </label>
+      @if (targetMonth() === '') {
+        <small class="import-target-hint import-target-required">
+          Required — choose the month these records belong to before importing.
+        </small>
+      }
+    </div>
+
+    <label
+      class="dropzone"
+      [class.dragging]="dragging()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave()"
+      (drop)="onDrop($event)">
+      <input
+        type="file"
+        class="file-input"
+        [accept]="'csv,tsv,txt,json,xlsx,xls,pdf,png,jpg,jpeg,webp,gif,bmp,tif,tiff'"
+        (change)="onFileSelected($event, $any($event.target))"
+        aria-label="Choose a file to import">
+      <app-icon name="upload" class="dz-icon"></app-icon>
+      @if (file()) {
+        <strong class="dz-name">{{ file()!.name }}</strong>
+        <small class="dz-sub">{{ formatSize(file()!.size) }} · click or drop to replace</small>
+      } @else {
+        <strong class="dz-title">Drop a file here, or click to browse</strong>
+        <small class="dz-sub">EXCEL · CSV · PDF · IMAGE (OCR) · TXT / JSON</small>
+      }
+    </label>
+
+    @if (parsing()) {
+      <div class="import-status">
+        <span class="spinner" aria-hidden="true"></span>
+        Reading {{ file()?.name }}…{{ parseHint() }}
+      </div>
+    }
+
+    @if (error(); as message) {
+      <div class="import-error" role="alert">
+        <app-icon name="alert"></app-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    @if (outcome(); as result) {
+      <div class="import-preview">
+        <div class="preview-head">
+          <span class="chip ok">
+            <app-icon name="check-circle"></app-icon>
+            {{ entries().length }} record{{ entries().length === 1 ? '' : 's' }}
+            found · {{ result.source }}
+          </span>
+          @if (hiddenCount() > 0) {
+            <small>+{{ hiddenCount() }} more below the preview</small>
+          }
+        </div>
+
+        @if (result.noTypeColumn) {
+          <div class="assume">
+            <span>No “type” column found — treat amounts as</span>
+            <label class="assume-opt">
+              <input
+                type="radio"
+                name="assume-type"
+                [checked]="assumeType() === 'expense'"
+                (change)="setAssume('expense')">
+              Expense
+            </label>
+            <label class="assume-opt">
+              <input
+                type="radio"
+                name="assume-type"
+                [checked]="assumeType() === 'income'"
+                (change)="setAssume('income')">
+              Income
+            </label>
+          </div>
+        }
+
+        <div class="preview-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th class="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of previewRows(); track row.key) {
+                <tr>
+                  <td class="sticky-col">{{ row.date }}</td>
+                  <td>
+                    <span class="type-badge" [class.income]="row.income">
+                      {{ row.income ? 'Income' : 'Expense' }}
+                    </span>
+                  </td>
+                  <td class="desc-cell">{{ row.desc }}</td>
+                  <td>{{ row.category }}</td>
+                  <td class="num">{{ row.amount }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="preview-totals">
+          <span class="total income-t">Income <strong>{{ money(incomeTotal()) }}</strong></span>
+          <span class="total expense-t">Expenses <strong>{{ money(expenseTotal()) }}</strong></span>
+          <span class="total net-t">Net <strong>{{ money(incomeTotal() - expenseTotal()) }}</strong></span>
+        </div>
+        @for (warning of result.warnings; track warning) {
+          <small class="warn-line">⚠ {{ warning }}</small>
+        }
+      </div>
+    }
+
+    <footer class="import-foot">
+      <button type="button" class="import-ghost" (click)="close.emit()">Cancel</button>
+      <button
+        type="button"
+        class="import-primary"
+        [disabled]="!entries().length || importing() || parsing() || targetMonth() === ''"
+        (click)="confirmImport()">
+        <app-icon name="download"></app-icon>
+        {{ importLabel() }}
+      </button>
+    </footer>
+
+  </section>
+</div>

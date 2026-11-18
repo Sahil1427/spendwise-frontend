@@ -12,8 +12,8 @@
           <app-icon name="chat"></app-icon>
         </div>
         <div>
-          <strong>Guide Bot</strong>
-          <small>Scripted tour &amp; help · no AI</small>
+          <strong>SpendWise Assistant</strong>
+          <small>{{ statusLine() }}</small>
         </div>
       </div>
       <button type="button" class="chatbot-close" (click)="toggleOpen()" aria-label="Close Guide Bot">
@@ -25,6 +25,14 @@
       @for (message of messages(); track message.id) {
         <div class="chat-bubble" [class.user-bubble]="message.from === 'user'">
           {{ message.text }}
+        </div>
+      }
+
+      @if (thinking()) {
+        <div class="chat-bubble bot-bubble thinking-bubble" aria-label="Assistant is thinking">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
         </div>
       }
 

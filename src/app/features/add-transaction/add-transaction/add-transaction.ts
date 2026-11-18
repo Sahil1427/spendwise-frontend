@@ -4,7 +4,7 @@ import { TransactionForm } from '../../../shared/transaction-form/transaction-fo
 import { Icon } from '../../../shared/icon/icon';
 import {
   TransactionService,
-  Transaction,
+  AddPayload,
 } from '../../../services/transaction.service';
 import { MonthSelectionService } from '../../../services/month-selection.service';
 
@@ -34,7 +34,7 @@ export class AddTransaction {
   });
 
   onSaved(
-    payload: Omit<Transaction, 'id' | 'createdAt' | 'currency'>
+    payload: AddPayload
   ): void {
     this.transactionService.addTransaction(payload);
     this.flashSaved();

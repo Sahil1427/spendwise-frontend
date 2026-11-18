@@ -132,6 +132,181 @@
   </section>
 
   <section class="settings-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Local data</h2>
+        <p>
+          Everything lives on this device. Load the bundled demo dataset
+          (Jan–Nov 2026, 130 records) for a full presentation, or start from a
+          clean slate.
+        </p>
+      </div>
+      <span class="panel-chip">
+        <app-icon name="inbox"></app-icon>
+        {{ recordCount() }} record{{ recordCount() === 1 ? '' : 's' }} on device
+      </span>
+    </div>
+
+    <div class="demo-actions">
+      @if (demoLoaded()) {
+        <span class="cap-saved" role="status">
+          <app-icon name="check"></app-icon> Demo data loaded
+        </span>
+      }
+
+      <button type="button" class="primary-button" (click)="loadDemoData()">
+        <app-icon name="download"></app-icon> Load demo data
+      </button>
+
+      <button
+        type="button"
+        class="clear-cap-button"
+        [disabled]="recordCount() === 0"
+        (click)="clearAllRecords()">
+        <app-icon name="trash"></app-icon> Clear all records
+      </button>
+    </div>
+
+    <p class="cap-hint">
+      “Load demo data” replaces whatever is currently saved. “Clear all
+      records” only touches transactions — settings and your savings cap stay.
+    </p>
+  </section>
+
+  <section class="settings-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>AI assistant</h2>
+        <p>
+          Connect an AI backend so the assistant understands free-form
+          questions about the app. Its system prompt always carries the full
+          SpendWise knowledge base — with no key it answers offline from the
+          same knowledge.
+        </p>
+      </div>
+      <span class="panel-chip">
+        <app-icon name="sparkles"></app-icon>
+        {{ assistant.aiConfigured() ? 'AI connected' : 'Offline helper' }}
+      </span>
+    </div>
+
+    <div class="cap-row ai-row">
+      <div class="cap-field">
+        <label for="ai-provider">Assistant backend</label>
+        <select
+          id="ai-provider"
+          class="field-input"
+          name="aiProvider"
+          [ngModel]="assistant.presetDraft"
+          (ngModelChange)="assistant.applyPreset($event)">
+          <option value="gemini">Google Gemini — FREE (AI Studio)</option>
+          <option value="groq">Groq — FREE, very fast (Llama 3.3)</option>
+          <option value="openrouter">OpenRouter — FREE models</option>
+          <option value="openai">OpenAI / other (GPT · Ollama…)</option>
+        </select>
+      </div>
+      <div class="cap-field">
+        <label>Get the key</label>
+        @switch (assistant.presetDraft) {
+          @case ('gemini') {
+            <span class="ai-key-source">
+              <strong>Free, no card:</strong> go to <code>aistudio.google.com</code>
+              → “Get API key” → paste it below. Uses the always-live
+              <code>gemini-flash-lite-latest</code> model on Google’s free
+              tier (if it ever 503s, wait a minute — or type a newer model
+              name in the Model field).
+            </span>
+          }
+          @case ('groq') {
+            <span class="ai-key-source">
+              <strong>Free, no card:</strong> go to <code>console.groq.com</code>
+              → “API Keys” → create a key and paste it below.
+              Llama 3.3 70B on Groq is fast and free.
+            </span>
+          }
+          @case ('openrouter') {
+            <span class="ai-key-source">
+              <strong>Free models:</strong> go to <code>openrouter.ai/keys</code>,
+              create a key; models tagged <code>:free</code> cost nothing.
+            </span>
+          }
+          @default {
+            <span class="ai-key-source">
+              Use your OpenAI key (<code>sk-…</code> from platform.openai.com),
+              or point at any OpenAI-compatible server such as Ollama on your
+              machine.
+            </span>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="cap-row ai-row">
+      <div class="cap-field">
+        <label for="ai-base-url">API base URL</label>
+        <input
+          id="ai-base-url"
+          type="text"
+          class="field-input"
+          name="aiBaseUrl"
+          placeholder="https://api.openai.com/v1"
+          [ngModel]="assistant.baseUrlDraft"
+          (ngModelChange)="assistant.baseUrlDraft = $event">
+      </div>
+
+      <div class="cap-field">
+        <label for="ai-model">Model</label>
+        <input
+          id="ai-model"
+          type="text"
+          class="field-input"
+          name="aiModel"
+          placeholder="gpt-4o-mini"
+          [ngModel]="assistant.modelDraft"
+          (ngModelChange)="assistant.modelDraft = $event">
+      </div>
+    </div>
+
+    <div class="cap-row">
+      <div class="cap-field">
+        <label for="ai-key">API key</label>
+        <input
+          id="ai-key"
+          type="password"
+          class="field-input"
+          name="aiKey"
+          placeholder="sk-…"
+          [ngModel]="assistant.apiKeyDraft"
+          (ngModelChange)="assistant.apiKeyDraft = $event">
+      </div>
+
+      <div class="cap-actions">
+        @if (aiSaved()) {
+          <span class="cap-saved" role="status">
+            <app-icon name="check"></app-icon> Saved
+          </span>
+        }
+
+        @if (assistant.aiConfigured()) {
+          <button type="button" class="clear-cap-button" (click)="removeAiKey()">
+            <app-icon name="trash"></app-icon> Remove key
+          </button>
+        }
+
+        <button type="button" class="primary-button" (click)="saveAiSettings()">
+          <app-icon name="sparkles"></app-icon> Save
+        </button>
+      </div>
+    </div>
+
+    <p class="cap-hint">
+      The key is stored in this browser only. Chat questions go to the
+      endpoint you configure — your saved financial records never do. Self‑hosted
+      servers (Ollama, vLLM, …) must allow cross‑origin requests from this site.
+    </p>
+  </section>
+
+  <section class="settings-panel">
     <div class="settings-note">
       <span class="settings-note-icon">ⓘ</span>
       <p>

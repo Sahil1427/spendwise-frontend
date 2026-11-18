@@ -5,8 +5,9 @@ import { Injectable, computed, signal } from '@angular/core';
  *
  * The application is strictly month-wise within ONE current year:
  * - the selector only offers the months of the current year
- * - the default is the month before the current month
- *   (falls back to January when running in January itself)
+ * - the default is the CURRENT (running) month, and every login
+ *   resets the selection back onto it (resetToCurrentMonth), so the
+ *   app always opens on today's month regardless of what was saved
  * - every tab (Dashboard, Add, History, Reports) reads the same
  *   selection, so switching tabs keeps the user on the same month
  */
@@ -55,6 +56,21 @@ export class MonthSelectionService {
     () => this.isThisMonthOf(this.selectedMonth())
   );
 
+  /**
+   * Snap the app back onto the running month. Called on login so the
+   * selection always starts on the current month, no matter what was
+   * persisted from a previous session.
+   */
+  resetToCurrentMonth(): void {
+    const month = this.defaultMonth();
+    this.selectedMonth.set(month);
+    try {
+      localStorage.setItem(MonthSelectionService.KEY, month);
+    } catch {
+      // Storage unavailable — signal-only update is enough.
+    }
+  }
+
   private isThisMonthOf(month: string): boolean {
     return (
       month ===
@@ -87,9 +103,8 @@ export class MonthSelectionService {
   }
 
   private defaultMonth(): string {
+    // The month that is currently running.
     const index = this.now.getMonth(); // 0-based
-    // The month before the current month; January stays on January.
-    const previous = index === 0 ? 1 : index;
-    return String(previous).padStart(2, '0');
+    return String(index + 1).padStart(2, '0');
   }
 }

@@ -235,3 +235,28 @@ select.form-input {
     align-items: stretch;
   }
 }
+
+.convert-offer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+  user-select: none;
+
+  strong {
+    font-weight: 700;
+  }
+
+  .convert-offer-box {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex: none;
+    accent-color: var(--accent, #1e4b9c);
+  }
+}

@@ -1,9 +1,20 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 import { SettingsService } from './settings.service';
+import { DEMO_TRANSACTIONS } from './demo-seed';
+import type { ImportEntry } from './file-parser.service';
 
 export type TransactionType = 'income' | 'expense';
 export type PlannerState = 'pending' | 'completed';
+
+/**
+ * Shape the Add/Edit form emits. Currency is optional on purpose: the
+ * service stamps the active currency unless the form converted the entry
+ * into the home country's currency first ("Save in INR instead").
+ */
+export type AddPayload = Omit<Transaction, 'id' | 'createdAt' | 'currency'> & {
+  currency?: string;
+};
 
 export interface RescheduleEntry {
   fromDate: string;
@@ -94,7 +105,9 @@ export class TransactionService {
           type: item.type === 'income' ? 'income' : 'expense',
           amount: Number(item.amount) || 0,
           currency,
-          category: item.category || item.description || 'Other Expenses',
+          category: this.migrateCategoryName(
+            item.category || item.description || 'Other Expenses'
+          ),
           date,
           createdAt: item.createdAt || new Date(`${date}T12:00:00`).toISOString(),
           name: item.name,
@@ -123,6 +136,15 @@ export class TransactionService {
     }
   }
 
+  /**
+   * One-time logical migration: the bundled demo data used "Dining",
+   * while the add form offers "Food & Dining". Unify so both render as
+   * one category (re-persisted by loadTransactions).
+   */
+  private migrateCategoryName(category: string): string {
+    return category === 'Dining' ? 'Food & Dining' : category;
+  }
+
   private loadCustomCategories(): Record<TransactionType, string[]> {
     try {
       const saved = localStorage.getItem(this.categoryKey);
@@ -145,6 +167,56 @@ export class TransactionService {
       this.transactionKey,
       JSON.stringify(this.transactions())
     );
+  }
+
+  /** Replace all records with the bundled demo dataset (Jan–Nov 2026). */
+  loadDemoData(): number {
+    const items = DEMO_TRANSACTIONS.map(item => ({ ...item, name: item.name ?? undefined }));
+    this.transactions.set(items);
+    this.persistTransactions();
+    return items.length;
+  }
+
+  /** Remove every record (keeps settings/intact categories). */
+  clearDemoData(): number {
+    const removed = this.transactions().length;
+    this.transactions.set([]);
+    this.persistTransactions();
+    return removed;
+  }
+
+  /** Append records parsed from an imported file (existing records stay). */
+  importEntries(entries: ImportEntry[]): number {
+    if (!entries.length) return 0;
+
+    const now = new Date().toISOString();
+    const currency = this.settings.currency();
+    const stamp = Date.now().toString(36);
+    const today = this.getLocalToday();
+
+    const items: Transaction[] = entries.map((entry, index) => {
+      const date = entry.date || today;
+      const plannerDue = date > today;
+      return {
+        id: `imp-${stamp}-${index}`,
+        type: entry.type === 'income' ? 'income' : 'expense',
+        amount: Math.abs(entry.amount) || 0,
+        currency,
+        category: entry.category || 'Imported',
+        date,
+        createdAt: now,
+        name: entry.description || undefined,
+        description: entry.description || undefined,
+        plannerState: plannerDue ? 'pending' : undefined,
+        plannerDueDate: plannerDue ? date : undefined,
+        rescheduleHistory: [],
+        notificationSeen: true,
+      };
+    });
+
+    this.transactions.update(current => [...current, ...items]);
+    this.persistTransactions();
+    return items.length;
   }
 
   private persistCategories(): void {
@@ -224,13 +296,12 @@ export class TransactionService {
     this.persistCategories();
   }
 
-  addTransaction(
-    transaction: Omit<Transaction, 'id' | 'createdAt' | 'currency'>
-  ): void {
-    // New records always use the currently selected currency.
+  addTransaction(transaction: AddPayload): void {
+    // New records use the currently selected currency — unless the form
+    // explicitly converted the entry into another currency first.
     const newTransaction: Transaction = {
       ...transaction,
-      currency: this.settings.currency(),
+      currency: transaction.currency ?? this.settings.currency(),
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };

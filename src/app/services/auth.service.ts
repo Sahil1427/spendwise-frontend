@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { MonthSelectionService } from './month-selection.service';
 
 /**
  * Client-side auth for this demo build.
@@ -9,6 +10,9 @@ import { Injectable, computed, signal } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private static readonly USER_KEY = 'spendwise-user';
+
+  /** Every login snaps the app onto the CURRENT month. */
+  constructor(private readonly months: MonthSelectionService) {}
 
   /** Demo credentials for this build. */
   static readonly CREDENTIALS = {
@@ -39,6 +43,8 @@ export class AuthService {
       const name = username.trim().toLowerCase();
       this.user.set(name);
       localStorage.setItem(AuthService.USER_KEY, name);
+      // Always open on the running month, whatever was persisted before.
+      this.months.resetToCurrentMonth();
     }
 
     return ok;

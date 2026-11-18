@@ -1,0 +1,78 @@
+@if (open()) {
+  <div class="cv-backdrop" (click)="onBackdrop($event)">
+    <div class="cv-card" role="dialog" aria-modal="true" aria-label="Currency converter">
+      <div class="cv-head">
+        <div class="cv-title">
+          <app-icon name="exchange" class="cv-title-icon"></app-icon>
+          <div>
+            <strong>Currency converter</strong>
+            <small>Market rates · auto-refreshes daily</small>
+          </div>
+        </div>
+        <button type="button" class="cv-close" (click)="closeDialog()" aria-label="Close converter">
+          <app-icon name="close"></app-icon>
+        </button>
+      </div>
+
+      <div class="cv-amount">
+        <label class="cv-label" for="cv-amount">Amount</label>
+        <div class="cv-amount-input">
+          <span class="cv-currency-tag">{{ from().toUpperCase() }}</span>
+          <input
+            id="cv-amount"
+            type="number"
+            class="cv-field"
+            placeholder="1"
+            min="0"
+            step="0.01"
+            name="cvAmount"
+            [ngModel]="amountText()"
+            (ngModelChange)="setAmount($event)">
+        </div>
+      </div>
+
+      <div class="cv-pair">
+        <label class="cv-label" for="cv-from">From</label>
+        <select
+          id="cv-from"
+          class="cv-field"
+          name="cvFrom"
+          [ngModel]="from()"
+          (ngModelChange)="setFrom($event)">
+          @for (c of currencyOptions; track c.code) {
+            <option [value]="c.code">{{ c.label }}</option>
+          }
+        </select>
+
+        <button type="button" class="cv-swap" (click)="swap()" aria-label="Swap currencies" title="Swap">
+          <app-icon name="exchange"></app-icon>
+        </button>
+
+        <label class="cv-label" for="cv-to">To</label>
+        <select
+          id="cv-to"
+          class="cv-field"
+          name="cvTo"
+          [ngModel]="to()"
+          (ngModelChange)="setTo($event)">
+          @for (c of currencyOptions; track c.code) {
+            <option [value]="c.code">{{ c.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="cv-result">
+        <span class="cv-result-label">{{ from().toUpperCase() }} → {{ to().toUpperCase() }}</span>
+        <strong class="cv-result-value">{{ resultText() }}</strong>
+        <small>{{ rateHint() }}</small>
+      </div>
+
+      <p class="cv-note">
+        <strong>{{ sourceLabel() }}</strong>
+        — refreshed every day from the market via a free, no-key endpoint;
+        the last table stays on this device for offline use. For planning,
+        not banking.
+      </p>
+    </div>
+  </div>
+}

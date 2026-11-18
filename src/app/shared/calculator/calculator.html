@@ -1,0 +1,76 @@
+@if (open()) {
+  <div class="calc-backdrop" (click)="onBackdrop($event)">
+    <div
+      class="calc-pop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Calculator"
+      (click)="$event.stopPropagation()">
+
+      <div class="calc-head">
+        <span class="calc-title">
+          <app-icon name="calc"></app-icon>
+          <strong>Calculator</strong>
+        </span>
+        <button
+          type="button"
+          class="calc-close"
+          (click)="closeDialog()"
+          aria-label="Close calculator">
+          <app-icon name="close"></app-icon>
+        </button>
+      </div>
+
+      <div class="calc-display" aria-live="polite">
+        <span class="calc-expr">{{ exprText() }}</span>
+        <strong class="calc-out">{{ display() }}</strong>
+      </div>
+
+      <div class="calc-keys" role="group" aria-label="Calculator keys">
+        <button type="button" class="k fn" (click)="clear()">C</button>
+        <button type="button" class="k fn" (click)="back()" aria-label="Backspace">⌫</button>
+        <button type="button" class="k fn" (click)="percent()">%</button>
+        <button
+          type="button"
+          class="k op"
+          [class.op-pressed]="pendingOp() === '÷'"
+          (click)="operator('÷')">÷</button>
+
+        <button type="button" class="k" (click)="digit('7')">7</button>
+        <button type="button" class="k" (click)="digit('8')">8</button>
+        <button type="button" class="k" (click)="digit('9')">9</button>
+        <button
+          type="button"
+          class="k op"
+          [class.op-pressed]="pendingOp() === '×'"
+          (click)="operator('×')">×</button>
+
+        <button type="button" class="k" (click)="digit('4')">4</button>
+        <button type="button" class="k" (click)="digit('5')">5</button>
+        <button type="button" class="k" (click)="digit('6')">6</button>
+        <button
+          type="button"
+          class="k op"
+          [class.op-pressed]="pendingOp() === '−'"
+          (click)="operator('−')">−</button>
+
+        <button type="button" class="k" (click)="digit('1')">1</button>
+        <button type="button" class="k" (click)="digit('2')">2</button>
+        <button type="button" class="k" (click)="digit('3')">3</button>
+        <button
+          type="button"
+          class="k op"
+          [class.op-pressed]="pendingOp() === '+'"
+          (click)="operator('+')">+</button>
+
+        <button type="button" class="k" (click)="toggleSign()" aria-label="Toggle sign">±</button>
+        <button type="button" class="k" (click)="digit('0')">0</button>
+        <button type="button" class="k" (click)="digit('.')">.</button>
+        <button type="button" class="k eq" (click)="equals()" aria-label="Equals">=</button>
+      </div>
+
+      <p class="calc-hint">Quick checks only — press Esc to close.</p>
+
+    </div>
+  </div>
+}

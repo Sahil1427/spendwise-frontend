@@ -16,6 +16,10 @@
       <a class="primary-button" routerLink="/add">
         <app-icon name="plus"></app-icon> Add Transaction
       </a>
+
+      <button type="button" class="import-button" (click)="openImport()">
+        <app-icon name="upload"></app-icon> Import client data
+      </button>
     </div>
   </div>
 
@@ -77,16 +81,31 @@
 
       @if (spendSlices().gradient) {
         <div class="pie-wrap">
-          <div class="pie" [style.background]="spendSlices().gradient">
-            <div class="pie-hole">
-              <span>Total spent</span>
-              <strong>{{ money(expenseTotal()) }}</strong>
+          <div
+            class="pie"
+            [class.pie-lit]="pieActive() !== null"
+            [style.background]="pieStyle()"
+            (mousemove)="onPieMove($event)"
+            (mouseleave)="onPieLeave()">
+            <div class="pie-hole" [class.pie-hole-focus]="pieFocus() !== null">
+              @if (pieFocus(); as focus) {
+                <span class="pie-hole-cat">{{ focus.name }}</span>
+                <strong>{{ focus.amount }}</strong>
+                <small class="pie-hole-share">{{ focus.share }} of spend</small>
+              } @else {
+                <span>Total spent</span>
+                <strong>{{ money(expenseTotal()) }}</strong>
+              }
             </div>
           </div>
 
           <div class="pie-legend">
-            @for (slice of spendSlices().slices; track slice.name) {
-              <div class="legend-row">
+            @for (slice of spendSlices().slices; track slice.name; let i = $index) {
+              <div
+                class="legend-row"
+                [class.legend-lit]="pieActive() === i"
+                (mouseenter)="setPieActive(i)"
+                (mouseleave)="setPieActive(null)">
                 <span class="legend-dot" [style.background]="slice.color"></span>
                 <span class="legend-name">{{ slice.name }}</span>
                 <strong>{{ slice.amount }}</strong>
@@ -124,14 +143,14 @@
             [class.selected]="month.selected"
             [class.dim]="!month.hasData">
             <div class="bars">
-              <span
-                class="bar income-bar"
-                [style.height.%]="month.incomeHeight"
-                [title]="'Income: ' + month.incomeValue"></span>
-              <span
-                class="bar expense-bar"
-                [style.height.%]="month.expenseHeight"
-                [title]="'Expenses: ' + month.expenseValue"></span>
+              <div class="bar-slot" [style.--bar-h]="month.incomeHeight + '%'">
+                <span class="bar income-bar" [style.height.%]="month.incomeHeight"></span>
+                <span class="bar-tip">{{ month.incomeValue }}</span>
+              </div>
+              <div class="bar-slot" [style.--bar-h]="month.expenseHeight + '%'">
+                <span class="bar expense-bar" [style.height.%]="month.expenseHeight"></span>
+                <span class="bar-tip">{{ month.expenseValue }}</span>
+              </div>
             </div>
             <span class="chart-label">{{ month.label }}</span>
           </div>
@@ -266,6 +285,20 @@
         }
 
       </section>
+    </div>
+  }
+
+  @if (importOpen()) {
+    <app-file-import
+      (close)="importOpen.set(false)"
+      (imported)="onImported($event)">
+    </app-file-import>
+  }
+
+  @if (importFlash()) {
+    <div class="import-flash" role="status">
+      <app-icon name="check-circle"></app-icon>
+      <span>{{ importFlash() }}</span>
     </div>
   }
 

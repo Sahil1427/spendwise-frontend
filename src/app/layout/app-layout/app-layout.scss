@@ -63,23 +63,13 @@
   }
 }
 
-.brand-icon {
+.brand-logo {
   width: 40px;
   height: 40px;
-  display: grid;
-  place-items: center;
+  flex: none;
+  display: block;
   border-radius: 12px;
-  background:
-    linear-gradient(145deg,
-      color-mix(in srgb, var(--accent) 82%, #fff),
-      var(--accent));
-  color: #fff;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
-
-  app-icon {
-    width: 22px;
-    height: 22px;
-  }
+  box-shadow: 0 6px 16px rgb(13 27 56 / 0.45);
 }
 
 .nav-section {
@@ -604,3 +594,60 @@
   }
 }
 
+
+.convert-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+
+  :global(svg) {
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 520px) {
+    span {
+      display: none;
+    }
+  }
+}
+
+.calc-trigger {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease, color 140ms ease;
+
+  :global(svg) {
+    width: 17px;
+    height: 17px;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+}

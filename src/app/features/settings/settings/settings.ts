@@ -4,6 +4,8 @@ import {
   CountryOption,
   SettingsService,
 } from '../../../services/settings.service';
+import { TransactionService } from '../../../services/transaction.service';
+import { AssistantService } from '../../../services/assistant.service';
 import { Icon } from '../../../shared/icon/icon';
 
 @Component({
@@ -14,6 +16,14 @@ import { Icon } from '../../../shared/icon/icon';
 })
 export class Settings {
   private readonly settingsService = inject(SettingsService);
+  private readonly transactions = inject(TransactionService);
+
+  /** Draft fields + save/clear actions for the AI assistant panel. */
+  readonly assistant = inject(AssistantService);
+  readonly aiSaved = signal(false);
+
+  /** Live record count on this device (for the Local data panel). */
+  readonly recordCount = computed(() => this.transactions.transactions().length);
 
   readonly countries: CountryOption[] = SettingsService.COUNTRIES;
   readonly currencies: string[] = SettingsService.CURRENCIES;
@@ -32,6 +42,10 @@ export class Settings {
   readonly capError = signal('');
   readonly capSaved = signal(false);
 
+  /** Flash shown right after loading the demo dataset (zoneless: signal,
+   * not a plain field, because the timeout resolves outside any user event). */
+  readonly demoLoaded = signal(false);
+
   get capValueText(): string | null {
     return this.savingCap()
       ? this.settingsService.formatAmount(this.savingCap()!)
@@ -43,6 +57,36 @@ export class Settings {
     setTimeout(() => {
       this.capSaved.set(false);
     }, 2200);
+  }
+
+  /** Replace all records with the bundled Jan–Nov 2026 demo dataset. */
+  loadDemoData(): void {
+    this.transactions.loadDemoData();
+    this.demoLoaded.set(true);
+    setTimeout(() => this.demoLoaded.set(false), 2200);
+  }
+
+  saveAiSettings(): void {
+    this.assistant.saveFromDrafts();
+    this.aiSaved.set(true);
+    setTimeout(() => this.aiSaved.set(false), 2200);
+  }
+
+  removeAiKey(): void {
+    this.assistant.clearKey();
+  }
+
+  /** Wipe every record after an explicit confirm (presentation reset). */
+  clearAllRecords(): void {
+    if (this.recordCount() === 0) {
+      return;
+    }
+    const ok = window.confirm(
+      `Delete all ${this.recordCount()} records on this device?\nSettings and the savings cap are kept.`
+    );
+    if (ok) {
+      this.transactions.clearDemoData();
+    }
   }
 
   saveCap(): void {

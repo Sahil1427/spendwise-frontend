@@ -112,6 +112,23 @@
     </div>
   </div>
 
+  @if (showConvertOffer) {
+    <label class="convert-offer">
+      <input
+        type="checkbox"
+        class="convert-offer-box"
+        name="convertToHome"
+        [ngModel]="convertToHome"
+        (ngModelChange)="convertToHome = $event; errorText = ''">
+      <span>
+        Save in <strong>{{ homeSymbol }} ({{ homeCurrency }})</strong> — my
+        country's currency. This entry ≈
+        <strong>{{ convertPreviewText }}</strong> at today's market rate
+        (refreshed daily).
+      </span>
+    </label>
+  }
+
   @if (errorText) {
     <p class="form-error">{{ errorText }}</p>
   }

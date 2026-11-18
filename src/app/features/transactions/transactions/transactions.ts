@@ -8,6 +8,7 @@ import {
   TransactionService,
   TransactionType,
   Transaction,
+  AddPayload,
 } from '../../../services/transaction.service';
 import { SettingsService } from '../../../services/settings.service';
 import { MonthSelectionService } from '../../../services/month-selection.service';
@@ -151,7 +152,7 @@ export class Transactions {
   }
 
   onEditSaved(
-    payload: Omit<Transaction, 'id' | 'createdAt' | 'currency'>
+    payload: AddPayload
   ): void {
     const target = this.editing();
 

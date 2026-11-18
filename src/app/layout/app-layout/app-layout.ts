@@ -1,14 +1,17 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { Chatbot } from '../../shared/chatbot/chatbot';
+import { CurrencyConverter } from '../../shared/currency-converter/currency-converter';
+import { Calculator } from '../../shared/calculator/calculator';
 import { AuthService } from '../../services/auth.service';
+import { CurrencyConvertService } from '../../services/currency-convert.service';
 
 type Theme = 'white' | 'dark' | 'cosmic-blue' | 'classic';
 
 @Component({
   selector: 'app-app-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, Chatbot],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, Chatbot, CurrencyConverter, Calculator],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.scss',
 })
@@ -16,7 +19,27 @@ export class AppLayout implements OnInit {
   private router = inject(Router);
   private readonly auth = inject(AuthService);
 
+  /** The global currency converter pop-up (topbar "Convert" button). */
+  @ViewChild('converter') converter: CurrencyConverter | undefined;
+
+  /** The on-demand calculator pop-up (topbar "calc" icon). */
+  @ViewChild('calcPop') calcPop: Calculator | undefined;
+
+  private readonly convertService = inject(CurrencyConvertService);
+
   readonly displayName = this.auth.displayName;
+
+  openConverter(): void {
+    this.themeMenuOpen = false;
+    this.userMenuOpen = false;
+    this.converter?.openDialog();
+  }
+
+  openCalculator(): void {
+    this.themeMenuOpen = false;
+    this.userMenuOpen = false;
+    this.calcPop?.openDialog();
+  }
 
   avatarLetter(): string {
     const name = this.auth.displayName();
@@ -90,6 +113,10 @@ export class AppLayout implements OnInit {
       : 'dark';
 
     this.applyTheme();
+
+    // Daily market-rate refresh (silent, at most once per day). Rates
+    // surface through the converter's source label when the user opens it.
+    void this.convertService.ensureFresh();
   }
 
   toggleThemeMenu(): void {

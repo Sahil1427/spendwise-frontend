@@ -8,6 +8,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MonthSelectionService } from '../../services/month-selection.service';
+import { AssistantService } from '../../services/assistant.service';
 import { Icon } from '../icon/icon';
 
 interface ChatMessage {
@@ -45,8 +46,13 @@ export class Chatbot implements OnInit {
   open = false;
   draft = '';
 
+  readonly assistant = inject(AssistantService);
+  /** True while a model call / delayed reply is outstanding. */
+  readonly thinking = signal(false);
+
   readonly quickChips: string[] = [
     '👋 Take a tour',
+    '✍️ Add expense 40 for chai today',
     'How do I add a record?',
     'How does the month selector work?',
     'What is the savings cap?',
@@ -60,9 +66,13 @@ export class Chatbot implements OnInit {
   private nextId = 1;
 
   private static readonly WELCOME =
-    "Hi! I'm the Guide Bot 👋 — a simple helper, no AI, just the facts. " +
-    'I can explain any part of SpendWise. Type a question below, tap one of the ' +
-    'quick chips, or let me take you on a full tour.';
+    "Hi! I'm your SpendWise assistant 👋 — I know this app inside and out, " +
+    'and I can do small jobs for you: say "add income 1000 for PG on 13 Nov 2026" ' +
+    'and I create the record on the spot (no AI key needed for that). ' +
+    'For everything else I explain any screen or finance term and walk you ' +
+    'on a tour. Connect an AI key in Settings → AI assistant and I understand ' +
+    'any phrasing; without one I still answer from my built-in knowledge. ' +
+    'Type below or tap a quick chip.';
 
   private static readonly TOUR = [
     {
@@ -216,40 +226,27 @@ export class Chatbot implements OnInit {
     }
   }
 
-  send(): void {
+  /** 'AI connected · gpt-4o-mini @ host' or 'Offline helper · …' */
+  statusLine(): string {
+    return this.assistant.statusLine();
+  }
+
+  async send(): Promise<void> {
     const text = this.draft.trim();
-    if (!text || this.tourStep() !== null) {
+    if (!text || this.tourStep() !== null || this.thinking()) {
       return;
     }
 
     this.pushUser(text);
     this.draft = '';
-
-    const lowered = text.toLowerCase();
-
-    for (const entry of Chatbot.KNOWLEDGE) {
-      if (entry.keywords.some(keyword => lowered.includes(keyword))) {
-        // Slight delay reads more "talking", and gives DOM time to re-render.
-        setTimeout(() => {
-          this.pushBot(entry.reply);
-          this.scrollToBottom();
-        }, 90);
-        return;
-      }
-    }
-
-    setTimeout(() => {
-      this.pushBot(
-        'Good question — I only know my scripted lines, no AI. Try one of: ' +
-          'dashboard · how do I add a record · history · reports · month ' +
-          'selector · currency · savings cap · positive or negative · ' +
-          'tour.'
-      );
-      this.scrollToBottom();
-    }, 90);
+    await this.answerFromAssistant(text);
   }
 
-  quickAsk(question: string): void {
+  async quickAsk(question: string): Promise<void> {
+    if (this.thinking()) {
+      return;
+    }
+
     this.draft = '';
     this.pushUser(question);
 
@@ -258,15 +255,46 @@ export class Chatbot implements OnInit {
       return;
     }
 
-    const lowered = question.toLowerCase();
-    const hit = Chatbot.KNOWLEDGE.find(entry =>
-      entry.keywords.some(keyword => lowered.includes(keyword))
-    );
+    await this.answerFromAssistant(question);
+  }
 
-    setTimeout(() => {
-      this.pushBot(hit ? hit.reply : Chatbot.KNOWLEDGE.at(-1)!.reply);
-      this.scrollToBottom();
-    }, 90);
+  private historyForAssistant(): { from: 'user' | 'bot'; text: string }[] {
+    return this.messages().map(message => ({
+      from: message.from === 'user' ? 'user' : 'bot',
+      text: message.text,
+    }));
+  }
+
+  private async answerFromAssistant(text: string): Promise<void> {
+    // Tasks run locally and deterministically — faster, cheaper and
+    // offline-safe. Only genuine questions fall through to the answer path.
+    const task = this.assistant.runTask(text);
+    if (task) {
+      setTimeout(() => {
+        this.pushBot(task);
+        this.scrollToBottom();
+      }, 120);
+      return;
+    }
+    if (this.assistant.aiConfigured()) {
+      this.thinking.set(true);
+      try {
+        const reply = await this.assistant.ask(
+          text,
+          this.historyForAssistant()
+        );
+        this.pushBot(reply.answer);
+      } finally {
+        this.thinking.set(false);
+        this.scrollToBottom();
+      }
+    } else {
+      // Offline mode — a short beat keeps the exchange feeling natural.
+      setTimeout(() => {
+        this.pushBot(this.assistant.localAnswer(text).answer);
+        this.scrollToBottom();
+      }, 90);
+    }
   }
 
   startTour(): void {

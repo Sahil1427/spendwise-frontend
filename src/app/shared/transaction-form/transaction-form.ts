@@ -14,8 +14,10 @@ import {
   TransactionService,
   TransactionType,
   Transaction,
+  AddPayload,
 } from '../../services/transaction.service';
 import { SettingsService } from '../../services/settings.service';
+import { CurrencyConvertService } from '../../services/currency-convert.service';
 
 /**
  * One flat form used for both adding and editing records.
@@ -35,6 +37,7 @@ import { SettingsService } from '../../services/settings.service';
 export class TransactionForm implements OnChanges {
   private readonly transactionService = inject(TransactionService);
   private readonly settingsService = inject(SettingsService);
+  private readonly convertService = inject(CurrencyConvertService);
 
   /** When set, the form works in edit mode for this record. */
   @Input() initial: Transaction | null = null;
@@ -42,10 +45,7 @@ export class TransactionForm implements OnChanges {
   /** Prefilled date (Add page passes today / selected-month context). */
   @Input() defaultDate = '';
 
-  @Output() saved = new EventEmitter<Omit<
-    Transaction,
-    'id' | 'createdAt' | 'currency'
-  >>();
+  @Output() saved = new EventEmitter<AddPayload>();
 
   @Output() canceled = new EventEmitter<void>();
 
@@ -65,6 +65,8 @@ export class TransactionForm implements OnChanges {
   description = '';
   amount: number | null = null;
   date = '';
+  /** Add mode: save converted into the home country's currency. */
+  convertToHome = false;
 
   private dateTouched = false;
 
@@ -125,6 +127,42 @@ export class TransactionForm implements OnChanges {
     return `Amount (${this.currencySymbol} ${code})`;
   }
 
+  /** Country's own currency (Settings → country), e.g. INR for India. */
+  get homeCurrency(): string {
+    return this.convertService.homeCurrency();
+  }
+
+  get homeSymbol(): string {
+    return this.settingsService.symbolFor(this.homeCurrency);
+  }
+
+  /** Offer the conversion only when it would actually change something. */
+  get showConvertOffer(): boolean {
+    if (this.isEdit) {
+      return false;
+    }
+    const active = this.settingsService.currency();
+    if (active === this.homeCurrency) {
+      return false;
+    }
+    const amt = Number(this.amount);
+    return this.amount !== null && Number.isFinite(amt) && amt > 0;
+  }
+
+  /** Live preview: what the entry would become in the home currency. */
+  get convertPreviewText(): string {
+    const amt = Number(this.amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return '—';
+    }
+    const value = this.convertService.convert(
+      amt,
+      this.settingsService.currency(),
+      this.homeCurrency
+    );
+    return this.convertService.valueText(value, this.homeCurrency);
+  }
+
   changeType(type: TransactionType): void {
     this.type = type;
     this.category = '';
@@ -181,13 +219,30 @@ export class TransactionForm implements OnChanges {
       this.transactionService.addCustomCategory(this.type, category);
     }
 
+    // "Save in my country's currency": convert the amount into the home
+    // currency (e.g. INR) and stamp the record with it explicitly.
+    let amount = Number(this.amount);
+    let currency: string | undefined;
+    const active = this.settingsService.currency();
+    if (!this.isEdit && this.convertToHome && active !== this.homeCurrency) {
+      const converted = this.convertService.convert(
+        amount,
+        active,
+        this.homeCurrency
+      );
+      amount = Math.round(converted * 100) / 100;
+      currency = this.homeCurrency;
+      this.convertToHome = false;
+    }
+
     this.saved.emit({
       type: this.type,
       category,
-      amount: Number(this.amount),
+      amount,
       date: this.date,
       name: this.name.trim() || undefined,
       description: this.description.trim() || undefined,
+      ...(currency ? { currency } : {}),
     });
 
     this.error = '';
@@ -206,6 +261,7 @@ export class TransactionForm implements OnChanges {
     this.name = '';
     this.description = '';
     this.amount = null;
+    this.convertToHome = false;
     this.dateTouched = false;
     this.date = this.defaultDate;
   }

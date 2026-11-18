@@ -3,9 +3,16 @@
   <aside class="sidebar" (click)="$event.stopPropagation()">
 
     <div class="brand">
-      <div class="brand-icon">
-        <app-icon name="wallet"></app-icon>
-      </div>
+      <svg class="brand-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="SpendWise logo">
+        <defs>
+          <linearGradient id="brandLogoBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0d1b3a"/>
+            <stop offset="100%" stop-color="#1e4b9c"/>
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="8.5" fill="url(#brandLogoBg)"/>
+        <path d="M16 5.9V26.1M20.6 9.6H13.7a3.2 3.2 0 0 0 0 6.4h4.6a3.2 3.2 0 0 1 0 6.4H10.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <div>
         <h2>SpendWise</h2>
         <span>Personal Finance</span>
@@ -63,6 +70,24 @@
       </div>
 
       <div class="topbar-actions">
+
+        <button
+          type="button"
+          class="calc-trigger"
+          (click)="openCalculator()"
+          title="Open calculator"
+          aria-label="Open calculator">
+          <app-icon name="calc"></app-icon>
+        </button>
+
+        <button
+          type="button"
+          class="convert-button"
+          (click)="openConverter()"
+          title="Convert amounts between currencies">
+          <app-icon name="exchange"></app-icon>
+          <span>Convert</span>
+        </button>
 
         <div class="theme-picker" (click)="$event.stopPropagation()">
 
@@ -151,6 +176,8 @@
 
   </main>
 
+  <app-currency-converter #converter />
+  <app-calculator #calcPop />
   <app-chatbot />
 
 </div>

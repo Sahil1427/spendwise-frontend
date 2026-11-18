@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MonthSelector } from '../../../shared/month-selector/month-selector';
 import { Icon } from '../../../shared/icon/icon';
+import { FileImport } from '../../../shared/file-import/file-import';
 import {
   TransactionService,
 } from '../../../services/transaction.service';
@@ -18,7 +19,7 @@ import { AuthService } from '../../../services/auth.service';
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, MonthSelector, Icon],
+  imports: [RouterLink, MonthSelector, Icon, FileImport],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -37,6 +38,32 @@ export class Dashboard {
 
   closeList(): void {
     this.listView.set(null);
+  }
+
+  /** “Import records” dialog state (CSV / Excel / PDF / image files). */
+  readonly importOpen = signal(false);
+  readonly importFlash = signal('');
+  private importFlashTimer: number | null = null;
+
+  openImport(): void {
+    this.importOpen.set(true);
+  }
+
+  onImported(payload: { count: number; month: string }): void {
+    // Jump the whole app onto the month the client records landed in, so
+    // the user immediately sees them on the dashboard.
+    this.monthSelection.setMonth(payload.month);
+    this.importOpen.set(false);
+    this.importFlash.set(
+      `${payload.count} record${payload.count === 1 ? '' : 's'} imported into ${this.monthSelection.selectedLabel()}.`
+    );
+    if (this.importFlashTimer !== null) {
+      window.clearTimeout(this.importFlashTimer);
+    }
+    this.importFlashTimer = window.setTimeout(
+      () => this.importFlash.set(''),
+      3400
+    );
   }
 
   readonly listRows = computed(() => {
@@ -202,6 +229,92 @@ export class Dashboard {
     '#8b9aa8', '#53cba0', '#a396ff',
   ];
 
+  /** Index of the pie slice under the cursor (or over the legend). */
+  readonly pieActive = signal<number | null>(null);
+
+  /** Colour a hex slice n% toward white — used for the lit hover state. */
+  private static lighten(hex: string, t: number): string {
+    const m = hex.replace('#', '');
+    const n = parseInt(m, 16);
+    if (m.length !== 6 || Number.isNaN(n)) {
+      return hex;
+    }
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    const mix = (c: number) => Math.round(c + (255 - c) * t);
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+  }
+
+  /** Gradients with the hovered slice lit white (or plain when none). */
+  readonly pieStyle = computed(() => {
+    const { slices } = this.spendSlices();
+    const active = this.pieActive();
+    if (slices.length === 0) {
+      return '';
+    }
+    const parts: string[] = [];
+    slices.forEach((slice, index) => {
+      const color = active === index
+        ? Dashboard.lighten(slice.color, 0.22)
+        : slice.color;
+      parts.push(
+        `${color} ${slice.fromPct.toFixed(2)}% ${slice.toPct.toFixed(2)}%`
+      );
+    });
+    return `conic-gradient(${parts.join(', ')})`;
+  });
+
+  /** The slice being pointed at — drives the centre "what am I on?" readout. */
+  readonly pieFocus = computed(() => {
+    const active = this.pieActive();
+    if (active === null) {
+      return null;
+    }
+    return this.spendSlices().slices[active] ?? null;
+  });
+
+  /**
+   * Maps cursor position on the donut to a slice index. The donut is a
+   * pure CSS conic-gradient (no per-slice DOM), so the geometry is done
+   * here: 0° is 12 o'clock, clockwise — the same space conic-gradient
+   * uses. The hole (inset 27%) is dead space.
+   */
+  onPieMove(event: MouseEvent): void {
+    const el = event.currentTarget as HTMLElement | null;
+    const slices = this.spendSlices().slices;
+    if (!el || slices.length === 0) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = event.clientX - cx;
+    const dy = event.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    const radius = rect.width / 2;
+    // Ring bounds: skip the centre hole (0.46 of the radius) and outside.
+    if (dist > radius || dist < radius * 0.46) {
+      this.pieActive.set(null);
+      return;
+    }
+    const deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
+    const pct = ((deg + 360) % 360) / 3.6;
+    const index = slices.findIndex(
+      slice => pct >= slice.fromPct && pct < slice.toPct
+    );
+    this.pieActive.set(index);
+  }
+
+  onPieLeave(): void {
+    this.pieActive.set(null);
+  }
+
+  /** Legend row hover mirrors the donut (bidirectional sync). */
+  setPieActive(index: number | null): void {
+    this.pieActive.set(index);
+  }
+
   /** Pie slices for spending breakdown of the selected month. */
   readonly spendSlices = computed(() => {
     const totals = new Map<string, number>();
@@ -224,6 +337,8 @@ export class Dashboard {
       share: string;
       amount: string;
       color: string;
+      fromPct: number;
+      toPct: number;
     }[] = [];
 
     let cursor = 0;
@@ -243,6 +358,8 @@ export class Dashboard {
         share: `${span.toFixed(1)}%`,
         amount: this.money(entry.amount),
         color: colors[index % colors.length],
+        fromPct: from,
+        toPct: to,
       });
 
       cursor = to;
