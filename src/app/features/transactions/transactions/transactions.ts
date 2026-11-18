@@ -12,6 +12,7 @@ import {
 } from '../../../services/transaction.service';
 import { SettingsService } from '../../../services/settings.service';
 import { MonthSelectionService } from '../../../services/month-selection.service';
+import { CurrencyConvertService } from '../../../services/currency-convert.service';
 
 /**
  * History — the month-wise record list.
@@ -30,7 +31,12 @@ import { MonthSelectionService } from '../../../services/month-selection.service
 export class Transactions {
   private readonly transactionService = inject(TransactionService);
   private readonly settingsService = inject(SettingsService);
+  private readonly convert = inject(CurrencyConvertService);
   readonly monthSelection = inject(MonthSelectionService);
+
+  /** Per-row conversion target: transactionId → currency code ('' = off). */
+  readonly conversionChoices = signal<Record<string, string>>({});
+  readonly conversionCurrencies: readonly string[] = this.convert.supported;
 
   readonly selectedFilter = signal<'all' | 'income' | 'expense'>('all');
   readonly searchTerm = signal('');
@@ -65,6 +71,11 @@ export class Transactions {
   );
 
   readonly filteredTransactions = computed(() => {
+    // Re-render the table whenever the active rate source changes, so an
+    // open conversion refreshes to today's market number automatically.
+    this.convert.source();
+    this.convert.asOf();
+
     const search = this.searchTerm().trim().toLowerCase();
     const filterType = this.selectedFilter();
 
@@ -189,6 +200,36 @@ export class Transactions {
     if (event.target === event.currentTarget) {
       this.closeEdit();
     }
+  }
+
+  setConversionChoice(id: string, currency: string): void {
+    const next = { ...this.conversionChoices() };
+    if (currency) {
+      next[id] = currency;
+    } else {
+      delete next[id];
+    }
+    this.conversionChoices.set(next);
+  }
+
+  /**
+   * CONVERT column: the record's amount re-expressed in the row's chosen
+   * target currency, e.g. ₹400 → "≈ $4.81" once USD is selected.
+   */
+  conversionDisplay(item: Transaction): string | null {
+    const target = this.conversionChoices()[item.id];
+    if (!target) {
+      return null;
+    }
+
+    const from = (item.currency || this.activeCurrency).toUpperCase();
+    const value = this.convert.convert(item.amount, from, target);
+
+    return `≈ ${new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: target,
+      maximumFractionDigits: 2,
+    }).format(value)}`;
   }
 
   formatDate(date: string): string {

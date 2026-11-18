@@ -92,6 +92,7 @@
           <span>TYPE</span>
           <span>DATE</span>
           <span>AMOUNT</span>
+          <span>CONVERT TO</span>
           <span>ACTIONS</span>
         </div>
 
@@ -131,6 +132,25 @@
                 <small class="amount-currency">{{ item.currency }}</small>
               }
             </strong>
+
+            <div class="convert-cell">
+              <select
+                class="convert-select"
+                aria-label="Convert this amount to a currency"
+                title="Convert this amount to another currency"
+                [ngModel]="conversionChoices()[item.id] || ''"
+                (ngModelChange)="setConversionChoice(item.id, $event)">
+                <option value="">—</option>
+                @for (code of conversionCurrencies; track code) {
+                  <option [ngValue]="code">{{ code }}</option>
+                }
+              </select>
+              @if (conversionDisplay(item)) {
+                <small class="convert-result">
+                  {{ conversionDisplay(item) }}
+                </small>
+              }
+            </div>
 
             <div class="transaction-actions">
               @if (canEditTransaction(item)) {
