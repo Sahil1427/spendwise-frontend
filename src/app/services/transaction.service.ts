@@ -224,6 +224,28 @@ export class TransactionService {
     );
   }
 
+  /**
+   * Collision-safe id for new local records. crypto.randomUUID() is only
+   * available in secure contexts (HTTPS or localhost); this site is also
+   * served over plain HTTP on a public IP, where it silently throws and
+   * every "Save Transaction" click would fail. The fallback matches the
+   * backend's own id style ('tx-' + 12 base36 chars).
+   */
+  private newLocalId(): string {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch {
+      // fall through to the manual generator
+    }
+    let body = '';
+    while (body.length < 12) {
+      body += Math.random().toString(36).slice(2);
+    }
+    return `tx-${body.slice(0, 12)}`;
+  }
+
   /** Replace all records with the bundled demo dataset (Jan–Nov 2026). */
   loadDemoData(): number {
     const items = DEMO_TRANSACTIONS.map(item => ({ ...item, name: item.name ?? undefined }));
@@ -367,7 +389,7 @@ export class TransactionService {
     const newTransaction: Transaction = {
       ...transaction,
       currency: transaction.currency ?? this.settings.currency(),
-      id: crypto.randomUUID(),
+      id: this.newLocalId(),
       createdAt: new Date().toISOString(),
     };
 
