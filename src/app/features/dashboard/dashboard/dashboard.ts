@@ -431,12 +431,20 @@ export class Dashboard {
   );
 
   greeting(): string {
-    const hour = new Date().getHours();
-    const part =
-      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+    const hour = new Date().getHours(); // 0-23
+    let part: string;
+    if (hour >= 5 && hour < 12) {
+      part = 'Good morning'; // 5am - 12pm
+    } else if (hour >= 12 && hour < 16) {
+      part = 'Good afternoon'; // 12pm - 4pm
+    } else if (hour >= 16 && hour < 20) {
+      part = 'Good evening'; // 4pm - 8pm
+    } else {
+      part = 'Welcome back'; // 8pm - 5am
+    }
     const name = this.authService.displayName() || 'there';
 
-    return `Good ${part}, ${name} \u{1F44B}`;
+    return `${part}, ${name} \u{1F44B}`;
   }
 
   money(amount: number): string {

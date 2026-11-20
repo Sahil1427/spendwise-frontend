@@ -6,6 +6,7 @@ import {
 } from '../../../services/settings.service';
 import { TransactionService } from '../../../services/transaction.service';
 import { AssistantService } from '../../../services/assistant.service';
+import { AuthService } from '../../../services/auth.service';
 import { Icon } from '../../../shared/icon/icon';
 
 @Component({
@@ -17,6 +18,37 @@ import { Icon } from '../../../shared/icon/icon';
 export class Settings {
   private readonly settingsService = inject(SettingsService);
   private readonly transactions = inject(TransactionService);
+  private readonly authService = inject(AuthService);
+
+  /** Users panel is only shown to the admin account. */
+  readonly isAdmin = computed(() => this.authService.isAdmin());
+  /** Users the admin has added; re-renders when a new one is saved. */
+  readonly userList = this.authService.userList;
+
+  /** Draft fields for the "add user" form (admin only). */
+  newUsername = '';
+  newPassword = '';
+  newDisplayName = '';
+  readonly addFormError = signal('');
+  readonly addFormSaved = signal(false);
+
+  addUser(): void {
+    const result = this.authService.addUser(
+      this.newUsername,
+      this.newPassword,
+      this.newDisplayName
+    );
+    if (result.ok) {
+      this.newUsername = '';
+      this.newPassword = '';
+      this.newDisplayName = '';
+      this.addFormError.set('');
+      this.addFormSaved.set(true);
+      setTimeout(() => this.addFormSaved.set(false), 2200);
+    } else {
+      this.addFormError.set(result.error ?? 'Could not add user.');
+    }
+  }
 
   /** Draft fields + save/clear actions for the AI assistant panel. */
   readonly assistant = inject(AssistantService);

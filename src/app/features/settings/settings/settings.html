@@ -306,6 +306,98 @@
     </p>
   </section>
 
+  @if (isAdmin()) {
+    <section class="settings-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Users</h2>
+          <p>
+            Add people who can open SpendWise with their own username and
+            password. Only the admin account can manage users — new accounts
+            are stored on this device.
+          </p>
+        </div>
+        <span class="panel-chip">
+          <app-icon name="user"></app-icon>
+          {{ userList().length }} user{{ userList().length === 1 ? '' : 's' }} added
+        </span>
+      </div>
+
+      <div class="cap-row user-row">
+        <div class="cap-field">
+          <label for="new-username">Username</label>
+          <input
+            id="new-username"
+            type="text"
+            class="field-input"
+            name="newUsername"
+            [ngModel]="newUsername"
+            (ngModelChange)="newUsername = $event; addFormError.set('')"
+            placeholder="e.g. priya" />
+          <small>Lowercase — they log in with this + the password.</small>
+        </div>
+
+        <div class="cap-field">
+          <label for="new-password">Password</label>
+          <input
+            id="new-password"
+            type="password"
+            class="field-input"
+            name="newPassword"
+            [ngModel]="newPassword"
+            (ngModelChange)="newPassword = $event; addFormError.set('')"
+            placeholder="min. 4 characters" />
+          <small>At least 4 characters.</small>
+        </div>
+
+        <div class="cap-field">
+          <label for="new-display">Display name</label>
+          <input
+            id="new-display"
+            type="text"
+            class="field-input"
+            name="newDisplayName"
+            [ngModel]="newDisplayName"
+            (ngModelChange)="newDisplayName = $event"
+            placeholder="optional — defaults to username" />
+          <small>Shown in the greeting and menus.</small>
+        </div>
+      </div>
+
+      <div class="cap-actions add-user-actions">
+        @if (addFormSaved()) {
+          <span class="cap-saved" role="status">
+            <app-icon name="check"></app-icon> User added
+          </span>
+        }
+
+        <button type="button" class="primary-button" (click)="addUser()">
+          <app-icon name="plus"></app-icon> Add user
+        </button>
+
+        <span class="add-user-hint">
+          You are on the <code>admin</code> account, so you can add users here.
+        </span>
+      </div>
+
+      @if (addFormError()) {
+        <p class="cap-error">{{ addFormError() }}</p>
+      }
+
+      @if (userList().length > 0) {
+        <div class="user-list">
+          @for (u of userList(); track u.username) {
+            <span class="user-chip">
+              <app-icon name="user"></app-icon>
+              {{ u.displayName }}
+              <code class="user-chip-key">{{ u.username }}</code>
+            </span>
+          }
+        </div>
+      }
+    </section>
+  }
+
   <section class="settings-panel">
     <div class="settings-note">
       <span class="settings-note-icon">ⓘ</span>
