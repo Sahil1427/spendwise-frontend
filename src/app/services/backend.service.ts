@@ -1,4 +1,5 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+
+import { Injectable, computed, signal } from '@angular/core';
 import type {
   Transaction,
   TransactionType,
@@ -16,19 +17,21 @@ const PREFS_KEY = 'spendwise-backend';
 const TIMEOUT_MS = 9000;
 
 /**
- * HTTP client for the SpendWise Spring Boot backend (default
- * http://localhost:8080). Design: **local-first, server mirror** —
+ * HTTP client for the SpendWise Spring Boot backend.
  *
- * - UI writes always hit the local signal + localStorage cache first
- *   (instant, works offline); when the connection is active the same
- *   operation is mirrored to the API in the background.
- * - "Connect" performs an initial sync: the server's records become the
- *   device's dataset (adopted by TransactionService), so switching on
- *   another device starts from the same numbers.
- * - On app start, if the persisted flag says "connected" the app quietly
- *   re-fetches and adopts the server state again (cross-device sync).
+ * Default behavior:
+ * - Uses same-origin /api requests in production.
+ * - Nginx proxies /api requests to the Spring Boot backend.
+ * - Supports custom backend URLs through application settings.
  *
- * The payloads are byte-identical to the client's own shapes — no mapping.
+ * Design: local-first, server mirror.
+ *
+ * - UI writes always hit the local signal + localStorage cache first.
+ * - When connected, the same operation is mirrored to the API.
+ * - Connect performs an initial sync from the server.
+ * - On app startup, a previously connected backend is checked again.
+ *
+ * The payloads remain identical to the client's own shapes.
  */
 @Injectable({ providedIn: 'root' })
 export class BackendService {
@@ -38,25 +41,30 @@ export class BackendService {
   private readonly prefsKey = PREFS_KEY;
   private readonly prefs = this.loadPrefs();
 
+  /**
+   * Empty URL means same-origin requests.
+   * Example: /api/health
+   */
   readonly baseUrl = signal(this.prefs.baseUrl);
-  /** True once a health check succeeded; persisted across reloads. */
+
+  /** True once a health check succeeded. */
   readonly connected = computed(() => this.status() === 'connected');
 
   // ------------------------------------------------------------------
   // Connection lifecycle
   // ------------------------------------------------------------------
 
-  /** Health-check the base URL; on success: status=connected + persist. */
   async connect(): Promise<boolean> {
-    this.setStatus('connecting', 'Checking backend…');
+    this.setStatus('connecting', 'Checking backend...');
+
     try {
-      const health = await this.call<{ records?: number }>(
-        '/health'
-      ).then(h => h);
+      const health = await this.call<{ records?: number }>('/health');
+
       this.setStatus(
         'connected',
         `Connected · ${health.records ?? 0} records on server`
       );
+
       this.persistPrefs(true);
       return true;
     } catch (err) {
@@ -71,38 +79,48 @@ export class BackendService {
   }
 
   /**
-   * Called by the mirror helpers when a background write fails.
-   * Surfaces the first failure per connect session in the panel without
-   * re-toasting on every subsequent write while the backend is down.
+   * Reports the first background mirror failure
+   * without repeatedly notifying the user.
    */
   reportMirrorError(err: unknown): void {
     if (this.status() !== 'connected') {
-      return; // already flagged — keep it quiet
+      return;
     }
-    this.setStatus('error',
+
+    this.setStatus(
+      'error',
       `A change could not reach the backend — ${this.describeError(err)}. ` +
-      `Changes are still saved on this device and will sync on the next start.`);
+      'Changes are still saved on this device and will sync on the next start.'
+    );
   }
 
+  /**
+   * Configure a custom backend URL.
+   *
+   * Empty value means same-origin /api requests.
+   */
   setBaseUrl(value: string): void {
-    const clean = (value.trim() || 'http://localhost:8080').replace(/\/+$/, '');
+    const clean = value.trim().replace(/\/+$/, '');
+
     this.baseUrl.set(clean);
     this.persistPrefs(this.status() === 'connected');
   }
 
   /**
-   * Automatic start-up sync: probe the backend; when reachable, mark the
-   * app connected (mirroring activates) so the caller can adopt the server
-   * state. When absent, the app simply stays fully local — no UI feedback.
+   * Automatically checks the backend on startup.
+   * If unavailable, the application remains local-first.
    */
   async autoConnect(): Promise<boolean> {
-    this.setStatus('connecting', 'Connecting to the backend…');
+    this.setStatus('connecting', 'Connecting to the backend...');
+
     try {
       const health = await this.call<{ records?: number }>('/health');
+
       this.setStatus(
         'connected',
         `Backend connected · ${health.records ?? 0} records`
       );
+
       this.persistPrefs(true);
       return true;
     } catch {
@@ -113,7 +131,7 @@ export class BackendService {
   }
 
   // ------------------------------------------------------------------
-  // Reads (used for adopt-on-connect / start-up sync)
+  // Reads
   // ------------------------------------------------------------------
 
   fetchTransactions(): Promise<Transaction[]> {
@@ -125,7 +143,7 @@ export class BackendService {
   }
 
   // ------------------------------------------------------------------
-  // Mirrors (fire-and-forget from the service layer)
+  // Mirrors
   // ------------------------------------------------------------------
 
   create(tx: Transaction): Promise<Transaction> {
@@ -143,7 +161,9 @@ export class BackendService {
   }
 
   remove(id: string): Promise<void> {
-    return this.call<void>(`/transactions/${id}`, { method: 'DELETE' });
+    return this.call<void>(`/transactions/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   clear(): Promise<{ cleared: number }> {
@@ -152,10 +172,14 @@ export class BackendService {
     });
   }
 
-  bulk(items: Transaction[], defaultCurrency?: string): Promise<{ count: number }> {
+  bulk(
+    items: Transaction[],
+    defaultCurrency?: string
+  ): Promise<{ count: number }> {
     const params = defaultCurrency
       ? `?defaultCurrency=${encodeURIComponent(defaultCurrency)}`
       : '';
+
     return this.call<{ count: number }>(`/transactions/bulk${params}`, {
       method: 'POST',
       body: items,
@@ -176,7 +200,10 @@ export class BackendService {
     });
   }
 
-  reschedulePlanner(id: string, newDate: string): Promise<Transaction> {
+  reschedulePlanner(
+    id: string,
+    newDate: string
+  ): Promise<Transaction> {
     return this.call<Transaction>(`/transactions/${id}/reschedule`, {
       method: 'PUT',
       body: { newDate },
@@ -184,14 +211,26 @@ export class BackendService {
   }
 
   saveSettings(prefs: SettingsPreferences): Promise<unknown> {
-    return this.call('/settings', { method: 'PUT', body: prefs });
+    return this.call('/settings', {
+      method: 'PUT',
+      body: prefs,
+    });
   }
 
-  addCategory(type: TransactionType, name: string): Promise<unknown> {
-    return this.call('/categories', { method: 'POST', body: { type, name } });
+  addCategory(
+    type: TransactionType,
+    name: string
+  ): Promise<unknown> {
+    return this.call('/categories', {
+      method: 'POST',
+      body: { type, name },
+    });
   }
 
-  removeCategory(type: TransactionType, name: string): Promise<unknown> {
+  removeCategory(
+    type: TransactionType,
+    name: string
+  ): Promise<unknown> {
     return this.call(
       `/categories/${type}?name=${encodeURIComponent(name)}`,
       { method: 'DELETE' }
@@ -199,29 +238,47 @@ export class BackendService {
   }
 
   // ------------------------------------------------------------------
-  // Plumbing
+  // HTTP plumbing
   // ------------------------------------------------------------------
 
   private async call<T>(
     path: string,
-    init?: { method?: string; body?: unknown }
+    init?: {
+      method?: string;
+      body?: unknown;
+    }
   ): Promise<T> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timer = setTimeout(
+      () => controller.abort(),
+      TIMEOUT_MS
+    );
+
     try {
       const response = await fetch(this.base() + path, {
         method: init?.method ?? 'GET',
         signal: controller.signal,
-        headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
-        body: init?.body ? JSON.stringify(init.body) : undefined,
+        headers: init?.body
+          ? { 'Content-Type': 'application/json' }
+          : undefined,
+        body: init?.body
+          ? JSON.stringify(init.body)
+          : undefined,
       });
+
       if (!response.ok) {
         const detail = await this.peekError(response);
-        throw new Error(`${response.status} ${response.statusText}${detail ? ` — ${detail}` : ''}`);
+
+        throw new Error(
+          `${response.status} ${response.statusText}` +
+          `${detail ? ` — ${detail}` : ''}`
+        );
       }
+
       if (response.status === 204) {
         return undefined as T;
       }
+
       return (await response.json()) as T;
     } finally {
       clearTimeout(timer);
@@ -230,55 +287,109 @@ export class BackendService {
 
   private async peekError(response: Response): Promise<string> {
     try {
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as {
+        error?: string;
+      };
+
       return data.error ?? '';
     } catch {
       return '';
     }
   }
 
+  /**
+   * Empty base URL:
+   *   /api
+   *
+   * Custom base URL:
+   *   https://backend.example.com/api
+   */
   private base(): string {
-    return this.baseUrl().replace(/\/+$/, '') + '/api';
+    const configuredUrl = this.baseUrl().trim().replace(/\/+$/, '');
+
+    return configuredUrl
+      ? `${configuredUrl}/api`
+      : '/api';
   }
 
   private describeError(err: unknown): string {
-    if (err instanceof DOMException && err.name === 'AbortError') {
+    if (
+      err instanceof DOMException &&
+      err.name === 'AbortError'
+    ) {
       return 'timed out';
     }
+
     if (err instanceof TypeError) {
       return 'could not reach the URL (is the backend running?)';
     }
-    return err instanceof Error ? err.message : String(err);
+
+    return err instanceof Error
+      ? err.message
+      : String(err);
   }
 
-  private setStatus(status: BackendStatus, message?: string): void {
+  private setStatus(
+    status: BackendStatus,
+    message?: string
+  ): void {
     this.status.set(status);
+
     if (message !== undefined) {
       this.message.set(message);
     }
   }
 
   private persistPrefs(connected: boolean): void {
-    const prefs = { connected, baseUrl: this.baseUrl() };
-    localStorage.setItem(this.prefsKey, JSON.stringify(prefs));
+    const prefs = {
+      connected,
+      baseUrl: this.baseUrl(),
+    };
+
+    localStorage.setItem(
+      this.prefsKey,
+      JSON.stringify(prefs)
+    );
   }
 
+  /**
+   * Loads saved preferences.
+   *
+   * Migrates the previous localhost default to same-origin
+   * access, while preserving any custom backend URL.
+   */
   private loadPrefs(): BackendPrefs {
     try {
       const saved = localStorage.getItem(this.prefsKey);
+
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<BackendPrefs>;
+
+        let savedBaseUrl =
+          typeof parsed.baseUrl === 'string'
+            ? parsed.baseUrl.trim()
+            : '';
+
+        // Migrate the old default.
+        if (
+          savedBaseUrl === 'http://localhost:8080' ||
+          savedBaseUrl === 'http://127.0.0.1:8080'
+        ) {
+          savedBaseUrl = '';
+        }
+
         return {
           connected: parsed.connected === true,
-          baseUrl:
-            typeof parsed.baseUrl === 'string' && parsed.baseUrl
-              ? parsed.baseUrl
-              : 'http://localhost:8080',
+          baseUrl: savedBaseUrl.replace(/\/+$/, ''),
         };
       }
     } catch {
-      /* fall through */
+      // Use default preferences.
     }
-    return { connected: false, baseUrl: 'http://localhost:8080' };
+
+    return {
+      connected: false,
+      baseUrl: '',
+    };
   }
 }
