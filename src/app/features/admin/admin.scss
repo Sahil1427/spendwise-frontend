@@ -1,0 +1,315 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Admin page — dark professional, matching the SpendWise app palette
+   ───────────────────────────────────────────────────────────────────────── */
+
+$bg: #0e1130;
+$panel: #151a40;
+$border: #1e2456;
+$text: #e8ecf8;
+$text-muted: #7a82a8;
+$primary: #6c63ff;
+$success: #2ecc71;
+$danger: #e74c5e;
+$input-bg: #0c0f2a;
+$radius: 10px;
+
+.admin-page {
+  min-height: 100vh;
+  background: $bg;
+  color: $text;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 0 1.5rem 3rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 0 1.2rem;
+  border-bottom: 1px solid $border;
+  margin-bottom: 1.4rem;
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .brand-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #6c63ff 30%, #a855f7);
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      margin: 0 0 1px;
+    }
+
+    .sub {
+      font-size: 0.72rem;
+      color: $text-muted;
+      display: block;
+
+      strong { color: $text; font-weight: 650; }
+    }
+  }
+}
+
+.btn-outline {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: transparent;
+  color: $text;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: #2a3060;
+  }
+}
+
+/* ── Panels ───────────────────────────────────────────────────────────── */
+.panel {
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: 14px;
+  padding: 1.3rem 1.4rem 1.2rem;
+  margin-bottom: 1.1rem;
+}
+
+.panel-head {
+  margin-bottom: 1rem;
+
+  h2 {
+    font-size: 0.85rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $text;
+    margin: 0;
+  }
+
+  .panel-hint {
+    font-size: 0.72rem;
+    color: $text-muted;
+    display: block;
+    margin-top: 3px;
+  }
+
+  .count-badge {
+    float: right;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--primary, #6c63ff20);
+    background: rgba(108, 99, 255, 0.18);
+    color: #c3b8ff;
+    border: 1px solid rgba(108, 99, 255, 0.25);
+    padding: 2px 9px;
+    border-radius: 99px;
+  }
+}
+
+/* ── Add-user form ────────────────────────────────────────────────────── */
+.add-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  label {
+    font-size: 0.68rem;
+    font-weight: 650;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    .opt { text-transform: none; font-weight: 500; opacity: 0.7; }
+  }
+
+  input {
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid $border;
+    background: $input-bg;
+    color: $text;
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:focus {
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+    }
+
+    &::placeholder { color: #3a3f6a; }
+  }
+}
+
+.submit-field {
+  .btn-primary {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    background: $primary;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+
+    &:hover { background: #5a52e8; }
+  }
+}
+
+/* ── Flash messages ───────────────────────────────────────────────────── */
+.flash {
+  margin: 0.65rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0;
+
+  &.ok  { color: $success; }
+  &.err { color: $danger;  }
+  &.small { margin: 0.4rem 0 0; font-size: 0.72rem; }
+}
+
+/* ── User rows ────────────────────────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.5fr 0.7fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+
+  &:last-child { border-bottom: none; }
+  &.edit-row { background: rgba(108,99,255,0.05); }
+}
+
+.cell {
+  font-size: 0.82rem;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.cell-user { color: $text-muted; }
+}
+
+.cell-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+
+  .btn-xs {
+    padding: 5px 12px;
+    border-radius: 7px;
+    border: 1px solid $border;
+    background: transparent;
+    color: $text;
+    font-size: 0.72rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover { background: rgba(255,255,255,0.06); }
+
+    &.ok {
+      background: rgba(46,204,113,0.14);
+      border-color: rgba(46,204,113,0.3);
+      color: $success;
+    }
+    &.danger {
+      background: rgba(231,76,94,0.1);
+      border-color: rgba(231,76,94,0.3);
+      color: $danger;
+      &:hover { background: rgba(231,76,94,0.18); border-color: rgba(231,76,94,0.5); }
+    }
+  }
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.05);
+  color: $text-muted;
+  border: 1px solid rgba(255,255,255,0.07);
+
+  &.badge-admin {
+    background: rgba(108,99,255,0.14);
+    border-color: rgba(108,99,255,0.28);
+    color: #b8b0ff;
+  }
+}
+
+/* ── Inline edit fields ───────────────────────────────────────────────── */
+.inline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label {
+    font-size: 0.64rem;
+    font-weight: 650;
+    color: $text-muted;
+    text-transform: uppercase;
+  }
+
+  input {
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid $border;
+    background: $input-bg;
+    color: $text;
+    font-size: 0.78rem;
+    outline: none;
+
+    &:focus { border-color: $primary; }
+  }
+}
+
+.row-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .add-form {
+    grid-template-columns: 1fr;
+  }
+  .row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    .cell-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+  }
+}

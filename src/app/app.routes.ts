@@ -3,6 +3,7 @@ import { AppLayout } from './layout/app-layout/app-layout';
 import {
   authenticatedGuard,
   guestGuard,
+  adminGuard,
 } from './services/auth.guards';
 
 /**
@@ -63,6 +64,12 @@ export const routes: Routes = [
       { path: 'budgets', redirectTo: 'dashboard' },
       { path: 'savings', redirectTo: 'dashboard' },
     ],
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/admin').then(m => m.Admin),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

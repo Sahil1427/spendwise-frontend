@@ -2,7 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import { MonthSelectionService } from './month-selection.service';
 
 /** A single account that may sign in. */
-interface UserRecord {
+export interface UserRecord {
   /** Canonical lowercase key. */
   username: string;
   password: string;
@@ -61,10 +61,15 @@ export class AuthService {
     return this.recordFor(key)?.displayName ?? AuthService.prettify(key);
   });
 
-  /** Every user the admin has added (for the Users panel). */
+  /** All users (built-in + added), in stable order. The admin page reads this. */
   readonly userList = computed(() => {
     void this.usersVersion();
-    return Object.values(this.loadUsers());
+    const stored = this.loadUsers();
+    const keys = [
+      ...Object.keys(AuthService.BUILTIN),
+      ...Object.keys(stored).filter((k) => !(k in AuthService.BUILTIN)),
+    ];
+    return keys.map((k) => stored[k] ?? AuthService.BUILTIN[k]!);
   });
 
   login(username: string, password: string): boolean {
@@ -128,6 +133,67 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * Update an existing user's password or display name.
+   * `newPassword` is optional — when omitted (or unchanged from the original)
+   * the current password is kept and no validation is applied.
+   */
+  updateUser(
+    username: string,
+    newPassword?: string,
+    displayName?: string
+  ): { ok: boolean; error?: string } {
+    const key = username.trim().toLowerCase();
+    if (!key) return { ok: false, error: 'Enter a username.' };
+    const existing = this.recordFor(key);
+    if (!existing) return { ok: false, error: 'User not found.' };
+
+    let pw = existing.password;
+    if (newPassword !== undefined && newPassword !== '') {
+      const pwErr = this.passwordError(newPassword);
+      if (pwErr) return { ok: false, error: pwErr };
+      pw = newPassword;
+    }
+
+    const users = this.loadUsers();
+    users[key] = {
+      ...existing,
+      password: pw,
+      displayName: displayName?.trim() || existing.displayName,
+    };
+    this.saveUsers(users);
+    return { ok: true };
+  }
+
+  /** Delete a non-built-in user (sahil/admin cannot be removed). */
+  deleteUser(username: string): { ok: boolean; error?: string } {
+    const key = username.trim().toLowerCase();
+    if (key in AuthService.BUILTIN) {
+      return { ok: false, error: 'Built-in accounts cannot be deleted.' };
+    }
+    const users = this.loadUsers();
+    if (!users[key]) return { ok: false, error: 'User not found.' };
+    delete users[key];
+    this.saveUsers(users);
+    return { ok: true };
+  }
+
+  private passwordError(pw: string): string | null {
+    if (pw.length < 5) return 'Password must be at least 5 characters.';
+    if (!/[A-Z]/.test(pw)) return 'Password needs at least 1 capital letter.';
+    if (!/[0-9]/.test(pw)) return 'Password needs at least 1 number.';
+    return null;
+  }
+
+  private saveUsers(users: Record<string, UserRecord>): void {
+    try {
+      localStorage.setItem(AuthService.USERS_KEY, JSON.stringify(users));
+    } catch {
+      /* storage unavailable */
+    }
+    this.usersVersion.update((v) => v + 1);
+  }
+
   logout(): void {
     this.currentUsername.set(null);
     localStorage.removeItem(AuthService.USER_KEY);
@@ -151,7 +217,12 @@ export class AuthService {
   }
 
   private recordFor(key: string): UserRecord | undefined {
-    return AuthService.BUILTIN[key] ?? this.loadUsers()[key];
+    return this.loadUsers()[key] ?? AuthService.BUILTIN[key];
+  }
+
+  /** True if the username is a built-in (sahil or admin) account. */
+  isBuiltin(username: string): boolean {
+    return username.trim().toLowerCase() in AuthService.BUILTIN;
   }
 
   private loadUsers(): Record<string, UserRecord> {

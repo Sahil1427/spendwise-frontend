@@ -1,0 +1,115 @@
+<div class="admin-page">
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <div>
+        <h1>User Management</h1>
+        <span class="sub">Signed in as <strong>Admin</strong></span>
+      </div>
+    </div>
+    <button type="button" class="btn-outline" (click)="signOut()">Sign out</button>
+  </header>
+
+  <main class="main">
+
+    <!-- ── Add user ─────────────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Add New User</h2>
+        <span class="panel-hint">New users sign in with the credentials you set here</span>
+      </div>
+
+      <form (ngSubmit)="addUser()" class="add-form" novalidate>
+        <div class="field">
+          <label for="f-username">Username</label>
+          <input
+            id="f-username" type="text"
+            [(ngModel)]="newUsername" name="u"
+            autocomplete="off" autocapitalize="none" spellcheck="false"
+            placeholder="e.g. john" />
+        </div>
+        <div class="field">
+          <label for="f-password">Password</label>
+          <input
+            id="f-password" type="password"
+            [(ngModel)]="newPassword" name="p"
+            autocomplete="new-password"
+            placeholder="min 5, 1 capital, 1 number" />
+        </div>
+        <div class="field">
+          <label for="f-display">Display Name <span class="opt">(optional)</span></label>
+          <input
+            id="f-display" type="text"
+            [(ngModel)]="newDisplayName" name="d"
+            autocomplete="off"
+            placeholder="defaults to username" />
+        </div>
+        <div class="field submit-field">
+          <button type="submit" class="btn-primary">+ Add user</button>
+        </div>
+      </form>
+
+      @if (addFlash().msg) {
+        <p class="flash" [class.ok]="addFlash().ok" [class.err]="!addFlash().ok">
+          {{ addFlash().msg }}
+        </p>
+      }
+    </section>
+
+    <!-- ── User list ────────────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>All Users</h2>
+        <span class="count-badge">{{ allUsers().length }}</span>
+      </div>
+
+      @for (u of allUsers(); track u.username) {
+        @if (editing() === u.username) {
+          <!-- ── Edit mode ── -->
+          <div class="row edit-row">
+            <div class="inline-field">
+              <label>Display name</label>
+              <input type="text" [(ngModel)]="editDisplay" name="ed"
+                     autocomplete="off" />
+            </div>
+            <div class="inline-field">
+              <label>Password</label>
+              <input type="password" [(ngModel)]="editPassword" name="ep"
+                     autocomplete="new-password" />
+            </div>
+            <div class="row-btns">
+              <button type="button" class="btn-xs ok"  (click)="saveEdit()">Save</button>
+              <button type="button" class="btn-xs"    (click)="cancelEdit()">Cancel</button>
+            </div>
+          </div>
+          @if (editFlash().msg) {
+            <p class="flash small" [class.ok]="editFlash().ok" [class.err]="!editFlash().ok">
+              {{ editFlash().msg }}
+            </p>
+          }
+        } @else {
+          <!-- ── View mode ── -->
+          <div class="row">
+            <span class="cell cell-display">{{ u.displayName }}</span>
+            <span class="cell cell-user">{{ u.username }}</span>
+            <span class="cell cell-role">
+              <span class="badge" [class.badge-admin]="u.role === 'admin'">{{ u.role }}</span>
+            </span>
+            <span class="cell cell-actions">
+              @if (u.role !== 'admin') {
+                <button type="button" class="btn-xs" (click)="startEdit(u)">Edit</button>
+              }
+              @if (!auth.isBuiltin(u.username)) {
+                <button type="button" class="btn-xs danger"
+                        (click)="removeUser(u.username)">Delete</button>
+              }
+            </span>
+          </div>
+        }
+      }
+    </section>
+
+  </main>
+</div>

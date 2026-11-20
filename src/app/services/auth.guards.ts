@@ -15,5 +15,17 @@ export function guestGuard() {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.isAuthenticated() ? router.createUrlTree(['/dashboard']) : true;
+  return auth.isAuthenticated()
+    ? router.createUrlTree([auth.isAdmin() ? '/admin' : '/dashboard'])
+    : true;
+}
+
+/** Only the admin account can enter the admin area. */
+export function adminGuard() {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (!auth.isAuthenticated()) return router.createUrlTree(['/login']);
+  if (!auth.isAdmin())       return router.createUrlTree(['/dashboard']);
+  return true;
 }
