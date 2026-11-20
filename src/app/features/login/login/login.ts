@@ -40,7 +40,11 @@ export class Login {
     // Tiny delay so the button gives perceptible feedback.
     setTimeout(() => {
       if (this.auth.login(this.username, this.password)) {
-        this.router.navigate([this.auth.isAdmin() ? '/admin' : '/dashboard']);
+        // Full page load so every service re-initialises against the
+        // signed-in user's own storage scope (per-user transactions).
+        window.location.assign(
+          this.auth.isAdmin() ? '/admin' : '/dashboard'
+        );
       } else {
         this.error.set('Invalid username or password.');
         this.busy.set(false);

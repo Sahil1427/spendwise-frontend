@@ -1,104 +1,158 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService, UserRecord } from '../../services/auth.service';
+import { Icon } from '../../shared/icon/icon';
 
 /**
- * Standalone admin page — only the admin account can reach this route
- * (enforced by adminGuard in app.routes.ts).
+ * Admin Console — standalone page reached at /admin (adminGuard).
  *
- * Shows the full user list with Add / Edit / Delete controls.
- * Admin never sees the spending app; sign-out returns to /login.
+ * Professional console layout: sidebar + header + stat cards + a
+ * "New / Edit user" panel beside a searchable user table.
+ * The admin does not see the spending app.
  */
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, Icon],
   templateUrl: './admin.html',
   styleUrl: './admin.scss',
 })
 export class Admin {
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
-  // ── Add-user form fields ────────────────────────────────────────────
-  newUsername = '';
-  newPassword = '';
-  newDisplayName = '';
-  readonly addFlash = signal<{ ok: boolean; msg: string }>({ ok: false, msg: '' });
+  /** null = "New user" mode; a username = editing that account. */
+  readonly editingUser = signal<string | null>(null);
+  username = '';
+  password = '';
+  displayName = '';
+  readonly formFlash = signal<{ ok: boolean; msg: string }>({
+    ok: false,
+    msg: '',
+  });
 
-  // ── Edit state ─────────────────────────────────────────────────────
-  readonly editing = signal<string | null>(null);
-  editDisplay = '';
-  editPassword = '';
-  private editOriginalPassword = '';
-  readonly editFlash = signal<{ ok: boolean; msg: string }>({ ok: false, msg: '' });
+  readonly search = signal('');
 
-  allUsers(): UserRecord[] {
-    return this.auth.userList();
+  private flashTimer: number | null = null;
+
+  // ── Derived lists / stats ─────────────────────────────────────────
+  filteredUsers = computed(() => {
+    const q = this.search().trim().toLowerCase();
+    const all = this.auth.userList();
+    return q
+      ? all.filter(
+          (u) =>
+            u.username.toLowerCase().includes(q) ||
+            u.displayName.toLowerCase().includes(q)
+        )
+      : all;
+  });
+
+  totalUsers = computed(() => this.auth.userList().length);
+
+  adminCount = computed(
+    () => this.auth.userList().filter((u) => u.role === 'admin').length
+  );
+
+  regularCount = computed(
+    () => this.totalUsers() - this.adminCount()
+  );
+
+  isEdit = computed(() => this.editingUser() !== null);
+
+  // ── Form actions ─────────────────────────────────────────────────
+  startEdit(user: UserRecord): void {
+    this.editingUser.set(user.username);
+    this.username = user.username;
+    // Blank = "keep current password" (legacy credentials may predate
+    // the strength rules, so they are not re-validated when untouched).
+    this.password = '';
+    this.displayName = user.displayName;
+    this.clearFlash();
   }
 
-  // ── Add user ─────────────────────────────────────────────────────────
-  addUser(): void {
-    if (!this.newUsername.trim()) {
-      this.addFlash.set({ ok: false, msg: 'Username is required.' });
+  resetForm(): void {
+    this.editingUser.set(null);
+    this.username = '';
+    this.password = '';
+    this.displayName = '';
+    this.clearFlash();
+  }
+
+  submit(): void {
+    if (this.isEdit()) {
+      this.saveEdit();
       return;
     }
-    const uname = this.newUsername.trim();
-    const res = this.auth.addUser(uname, this.newPassword, this.newDisplayName);
-    if (res.ok) {
-      this.addFlash.set({ ok: true, msg: `"${uname}" added — they can sign in now.` });
-      this.newUsername = '';
-      this.newPassword = '';
-      this.newDisplayName = '';
-      setTimeout(() => this.addFlash.set({ ok: false, msg: '' }), 4500);
-    } else {
-      this.addFlash.set({ ok: false, msg: res.error ?? 'Could not add user.' });
-    }
-  }
 
-  // ── Edit user ────────────────────────────────────────────────────────
-  startEdit(u: UserRecord): void {
-    this.editing.set(u.username);
-    this.editDisplay = u.displayName;
-    this.editPassword = u.password;
-    this.editOriginalPassword = u.password;
-    this.editFlash.set({ ok: false, msg: '' });
+    if (!this.username.trim()) {
+      this.flash('Enter a username first.', false);
+      return;
+    }
+
+    const res = this.auth.addUser(
+      this.username,
+      this.password,
+      this.displayName
+    );
+    if (res.ok) {
+      this.flash(`“${this.username.trim()}” can sign in now.`, true);
+      this.username = '';
+      this.password = '';
+      this.displayName = '';
+    } else {
+      this.flash(res.error ?? 'Could not add the user.', false);
+    }
   }
 
   saveEdit(): void {
-    const uname = this.editing();
-    if (!uname) return;
+    const original = this.editingUser();
+    if (!original) {
+      return;
+    }
 
-    // Only pass the password to the service if it was actually changed;
-    // otherwise the original (which may not meet the 5-cap-num rules for
-    // e.g. sahil/pass123) is preserved without re-validation.
-    const pwChanged = this.editPassword !== this.editOriginalPassword;
-    const res = this.auth.updateUser(uname, pwChanged ? this.editPassword : undefined, this.editDisplay);
+    if (!this.username.trim()) {
+      this.flash('Enter a username first.', false);
+      return;
+    }
 
+    const res = this.auth.updateUser(
+      this.username,
+      this.password ? this.password : undefined,
+      this.displayName
+    );
     if (res.ok) {
-      this.editFlash.set({ ok: true, msg: 'Saved.' });
-      this.editing.set(null);
-      setTimeout(() => this.editFlash.set({ ok: false, msg: '' }), 3500);
+      this.flash('Changes saved.', true);
+      this.resetForm();
     } else {
-      this.editFlash.set({ ok: false, msg: res.error ?? 'Could not save.' });
+      this.flash(res.error ?? 'Could not save changes.', false);
     }
   }
 
-  cancelEdit(): void {
-    this.editing.set(null);
-    this.editFlash.set({ ok: false, msg: '' });
-  }
-
-  // ── Delete user ──────────────────────────────────────────────────────
-  removeUser(username: string): void {
-    if (!window.confirm(`Delete user "${username}"?`)) return;
-    const res = this.auth.deleteUser(username);
-    if (!res.ok && res.error) window.alert(res.error);
+  removeUser(user: UserRecord): void {
+    if (!window.confirm(`Delete user “${user.username}”? This cannot be undone.`)) {
+      return;
+    }
+    const res = this.auth.deleteUser(user.username);
+    if (!res.ok && res.error) {
+      window.alert(res.error);
+    }
   }
 
   signOut(): void {
     this.auth.logout();
-    this.router.navigate(['/login']);
+    window.location.assign('/login');
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────
+  private flash(msg: string, ok: boolean): void {
+    this.formFlash.set({ ok, msg });
+    if (this.flashTimer !== null) {
+      window.clearTimeout(this.flashTimer);
+    }
+    this.flashTimer = window.setTimeout(() => this.clearFlash(), 4500);
+  }
+
+  private clearFlash(): void {
+    this.formFlash.set({ ok: false, msg: '' });
   }
 }

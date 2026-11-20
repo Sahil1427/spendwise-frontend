@@ -72,6 +72,15 @@ export class AuthService {
     return keys.map((k) => stored[k] ?? AuthService.BUILTIN[k]!);
   });
 
+  /**
+   * Per-user storage scope: the signed-in username, or "guest" when signed
+   * out. Per-user data (transactions, settings) is namespaced under this so
+   * two accounts on the same device never see each other's data.
+   */
+  dataScope(): string {
+    return this.loadSession() ?? 'guest';
+  }
+
   login(username: string, password: string): boolean {
     const key = username.trim().toLowerCase();
     const rec = this.recordFor(key);

@@ -1,5 +1,6 @@
 
 import { Injectable, inject, signal } from '@angular/core';
+import { AuthService } from './auth.service';
 import { SettingsService } from './settings.service';
 import { BackendService } from './backend.service';
 import { DEMO_TRANSACTIONS } from './demo-seed';
@@ -47,8 +48,36 @@ export interface Transaction {
 @Injectable({ providedIn: 'root' })
 export class TransactionService {
   private readonly settings = inject(SettingsService);
-  private readonly transactionKey = 'spendwise-transactions';
-  private readonly categoryKey = 'spendwise-custom-categories';
+  /** Storage is namespaced per signed-in user, so each account starts
+   * with an empty ledger — logging in as a new user never shows
+   * another user's transactions. */
+  private readonly scope = inject(AuthService).dataScope();
+  private readonly transactionKey = `spendwise-transactions:${this.scope}`;
+  private readonly categoryKey = `spendwise-custom-categories:${this.scope}`;
+
+  constructor() {
+    // One-time migration: records saved before per-user storage existed
+    // belonged to the original "sahil" account. Hand them to sahil's
+    // scoped keys so nothing is lost; every other account starts clean.
+    if (this.scope === 'sahil') {
+      this.copyLegacy('spendwise-transactions', this.transactionKey);
+      this.copyLegacy('spendwise-custom-categories', this.categoryKey);
+    }
+  }
+
+  private copyLegacy(from: string, to: string): void {
+    try {
+      if (localStorage.getItem(to) !== null) {
+        return;
+      }
+      const legacy = localStorage.getItem(from);
+      if (legacy !== null) {
+        localStorage.setItem(to, legacy);
+      }
+    } catch {
+      // Storage unavailable — nothing to migrate.
+    }
+  }
 
   readonly transactions = signal<Transaction[]>(this.loadTransactions());
 

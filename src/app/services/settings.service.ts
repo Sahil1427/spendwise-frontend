@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { AuthService } from './auth.service';
 import { BackendService } from './backend.service';
 
 export interface CountryOption {
@@ -17,7 +18,26 @@ export interface SettingsPreferences {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
-  private static readonly SETTINGS_KEY = 'spendwise-settings';
+    /** Preferences are namespaced per signed-in user. */
+  private readonly storageKey =
+    'spendwise-settings:' + inject(AuthService).dataScope();
+
+  constructor() {
+    // One-time migration — see TransactionService.copyLegacy. Settings
+    // saved before per-user storage existed belonged to "sahil".
+    if (this.storageKey === 'spendwise-settings:sahil') {
+      try {
+        if (localStorage.getItem(this.storageKey) === null) {
+          const legacy = localStorage.getItem('spendwise-settings');
+          if (legacy !== null) {
+            localStorage.setItem(this.storageKey, legacy);
+          }
+        }
+      } catch {
+        // Storage unavailable — nothing to migrate.
+      }
+    }
+  }
 
   static readonly COUNTRIES: CountryOption[] = [
     { code: 'IN', name: 'India', flag: '🇮🇳', currency: 'INR' },
@@ -68,7 +88,7 @@ export class SettingsService {
     };
 
     try {
-      const saved = localStorage.getItem(SettingsService.SETTINGS_KEY);
+      const saved = localStorage.getItem(this.storageKey);
       if (!saved) return fallback;
 
       const parsed = JSON.parse(saved) as Partial<SettingsPreferences>;
@@ -95,7 +115,7 @@ export class SettingsService {
 
   private persist(): void {
     localStorage.setItem(
-      SettingsService.SETTINGS_KEY,
+      this.storageKey,
       JSON.stringify(this.preferences())
     );
   }

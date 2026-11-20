@@ -88,7 +88,9 @@ export class AppLayout implements OnInit {
     this.userMenuOpen = false;
     this.themeMenuOpen = false;
     this.auth.logout();
-    this.router.navigate(['/login']);
+    // Full reload so the next sign-in re-initialises all services with a
+    // fresh per-user storage scope.
+    window.location.assign('/login');
   }
 
   get showDashboardBackButton(): boolean {

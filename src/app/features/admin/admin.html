@@ -1,115 +1,251 @@
-<div class="admin-page">
+<div class="console">
 
-  <!-- ── Top bar ─────────────────────────────────────────────────────── -->
-  <header class="topbar">
+  <!-- ═══ Sidebar ══════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
     <div class="brand">
-      <span class="brand-dot" aria-hidden="true"></span>
-      <div>
-        <h1>User Management</h1>
-        <span class="sub">Signed in as <strong>Admin</strong></span>
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <div class="brand-text">
+        <strong>SpendWise</strong>
+        <span>Admin Console</span>
       </div>
     </div>
-    <button type="button" class="btn-outline" (click)="signOut()">Sign out</button>
-  </header>
 
+    <nav class="nav">
+      <span class="nav-section">Manage</span>
+      <a class="nav-item active" href="#" (click)="$event.preventDefault()">
+        <app-icon name="user"></app-icon>
+        <span>User Management</span>
+        <span class="nav-count">{{ totalUsers() }}</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="me">
+        <span class="me-avatar" aria-hidden="true">A</span>
+        <div class="me-text">
+          <strong>Admin</strong>
+          <span>Administrator</span>
+        </div>
+      </div>
+      <button type="button" class="signout-btn" (click)="signOut()">
+        <app-icon name="logout"></app-icon>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══ Main ═════════════════════════════════════════════════════════ -->
   <main class="main">
 
-    <!-- ── Add user ─────────────────────────────────────────────────── -->
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Add New User</h2>
-        <span class="panel-hint">New users sign in with the credentials you set here</span>
+    <header class="page-header">
+      <div>
+        <span class="crumb">Manage</span>
+        <h1>User Management</h1>
+        <p>Create the accounts your clients sign in with.</p>
       </div>
+      <label class="search">
+        <app-icon name="search"></app-icon>
+        <input
+          type="text"
+          [(ngModel)]="search"
+          placeholder="Search users…"
+          autocomplete="off" />
+      </label>
+    </header>
 
-      <form (ngSubmit)="addUser()" class="add-form" novalidate>
-        <div class="field">
-          <label for="f-username">Username</label>
-          <input
-            id="f-username" type="text"
-            [(ngModel)]="newUsername" name="u"
-            autocomplete="off" autocapitalize="none" spellcheck="false"
-            placeholder="e.g. john" />
+    <!-- ── Stat cards ── -->
+    <section class="stats">
+      <div class="stat">
+        <span class="stat-icon" aria-hidden="true"><app-icon name="user"></app-icon></span>
+        <div class="stat-body">
+          <span class="stat-value">{{ totalUsers() }}</span>
+          <span class="stat-label">Total users</span>
         </div>
-        <div class="field">
-          <label for="f-password">Password</label>
-          <input
-            id="f-password" type="password"
-            [(ngModel)]="newPassword" name="p"
-            autocomplete="new-password"
-            placeholder="min 5, 1 capital, 1 number" />
+      </div>
+      <div class="stat">
+        <span class="stat-icon accent" aria-hidden="true"><app-icon name="shield"></app-icon></span>
+        <div class="stat-body">
+          <span class="stat-value">{{ adminCount() }}</span>
+          <span class="stat-label">Administrators</span>
         </div>
-        <div class="field">
-          <label for="f-display">Display Name <span class="opt">(optional)</span></label>
-          <input
-            id="f-display" type="text"
-            [(ngModel)]="newDisplayName" name="d"
-            autocomplete="off"
-            placeholder="defaults to username" />
+      </div>
+      <div class="stat">
+        <span class="stat-icon" aria-hidden="true"><app-icon name="inbox"></app-icon></span>
+        <div class="stat-body">
+          <span class="stat-value">{{ regularCount() }}</span>
+          <span class="stat-label">Regular users</span>
         </div>
-        <div class="field submit-field">
-          <button type="submit" class="btn-primary">+ Add user</button>
-        </div>
-      </form>
-
-      @if (addFlash().msg) {
-        <p class="flash" [class.ok]="addFlash().ok" [class.err]="!addFlash().ok">
-          {{ addFlash().msg }}
-        </p>
-      }
+      </div>
     </section>
 
-    <!-- ── User list ────────────────────────────────────────────────── -->
-    <section class="panel">
-      <div class="panel-head">
-        <h2>All Users</h2>
-        <span class="count-badge">{{ allUsers().length }}</span>
-      </div>
+    <div class="grid">
 
-      @for (u of allUsers(); track u.username) {
-        @if (editing() === u.username) {
-          <!-- ── Edit mode ── -->
-          <div class="row edit-row">
-            <div class="inline-field">
-              <label>Display name</label>
-              <input type="text" [(ngModel)]="editDisplay" name="ed"
-                     autocomplete="off" />
-            </div>
-            <div class="inline-field">
-              <label>Password</label>
-              <input type="password" [(ngModel)]="editPassword" name="ep"
-                     autocomplete="new-password" />
-            </div>
-            <div class="row-btns">
-              <button type="button" class="btn-xs ok"  (click)="saveEdit()">Save</button>
-              <button type="button" class="btn-xs"    (click)="cancelEdit()">Cancel</button>
-            </div>
+      <!-- ── New / Edit user panel ── -->
+      <section class="panel form-panel">
+        <div class="panel-head">
+          <h2>
+            @if (isEdit()) {
+              Edit user
+            } @else {
+              New user
+            }
+          </h2>
+          @if (isEdit()) {
+            <button type="button" class="link-btn" (click)="resetForm()">
+              Back to new user
+            </button>
+          }
+        </div>
+
+        <form (ngSubmit)="submit()" class="user-form" novalidate>
+
+          <div class="field">
+            <label for="adm-username">Username</label>
+            <input
+              id="adm-username"
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="e.g. john" />
           </div>
-          @if (editFlash().msg) {
-            <p class="flash small" [class.ok]="editFlash().ok" [class.err]="!editFlash().ok">
-              {{ editFlash().msg }}
+
+          <div class="field">
+            <label for="adm-password">
+              Password
+              @if (isEdit()) {
+                <span class="hint">— optional, keep current</span>
+              }
+            </label>
+            <input
+              id="adm-password"
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              autocomplete="new-password"
+              [placeholder]="isEdit() ? 'Leave blank to keep current' : 'min 5 · 1 capital · 1 number'" />
+          </div>
+
+          <div class="field">
+            <label for="adm-display">Display name</label>
+            <input
+              id="adm-display"
+              type="text"
+              [(ngModel)]="displayName"
+              name="displayName"
+              autocomplete="off"
+              placeholder="defaults to the username" />
+          </div>
+
+          <div class="form-actions">
+            @if (isEdit()) {
+              <button type="button" class="btn ghost" (click)="resetForm()">
+                Cancel
+              </button>
+              <button type="submit" class="btn primary">
+                <app-icon name="check"></app-icon>
+                Save changes
+              </button>
+            } @else {
+              <button type="submit" class="btn primary">
+                <app-icon name="plus"></app-icon>
+                Add user
+              </button>
+            }
+          </div>
+
+          @if (formFlash().msg) {
+            <p class="flash" role="status" [class.ok]="formFlash().ok" [class.err]="!formFlash().ok">
+              <app-icon [name]="formFlash().ok ? 'check-circle' : 'alert'"></app-icon>
+              {{ formFlash().msg }}
             </p>
           }
-        } @else {
-          <!-- ── View mode ── -->
-          <div class="row">
-            <span class="cell cell-display">{{ u.displayName }}</span>
-            <span class="cell cell-user">{{ u.username }}</span>
-            <span class="cell cell-role">
-              <span class="badge" [class.badge-admin]="u.role === 'admin'">{{ u.role }}</span>
-            </span>
-            <span class="cell cell-actions">
-              @if (u.role !== 'admin') {
-                <button type="button" class="btn-xs" (click)="startEdit(u)">Edit</button>
+        </form>
+
+        <p class="form-note">
+          Passwords need at least 5 characters, 1 capital and 1 number.
+          New users sign in with these credentials only.
+        </p>
+      </section>
+
+      <!-- ── Users table ── -->
+      <section class="panel table-panel">
+        <div class="panel-head">
+          <h2>Users</h2>
+          <span class="count-pill">{{ filteredUsers().length }} of {{ totalUsers() }}</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th class="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of filteredUsers(); track u.username) {
+                <tr>
+                  <td>
+                    <span class="user-cell">
+                      <span class="avatar" aria-hidden="true">
+                        {{ u.displayName.charAt(0).toUpperCase() }}
+                      </span>
+                      <span class="user-text">
+                        <strong>{{ u.displayName }}</strong>
+                        <span>{{ u.username }}</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [class.badge-admin]="u.role === 'admin'">
+                      @if (u.role === 'admin') {
+                        <app-icon name="shield"></app-icon>
+                      }
+                      {{ u.role }}
+                    </span>
+                  </td>
+                  <td class="td-actions">
+                    @if (u.role === 'admin') {
+                      <span class="lock-note">
+                        <app-icon name="lock"></app-icon> Owner
+                      </span>
+                    } @else {
+                      <span class="row-actions">
+                        <button
+                          type="button"
+                          class="icon-btn"
+                          title="Edit"
+                          (click)="startEdit(u)">
+                          <app-icon name="edit"></app-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-btn danger"
+                          title="Delete"
+                          (click)="removeUser(u)">
+                          <app-icon name="trash"></app-icon>
+                        </button>
+                      </span>
+                    }
+                  </td>
+                </tr>
               }
-              @if (!auth.isBuiltin(u.username)) {
-                <button type="button" class="btn-xs danger"
-                        (click)="removeUser(u.username)">Delete</button>
+              @empty {
+                <tr>
+                  <td colspan="3" class="empty">
+                    No users match “{{ search() }}”.
+                  </td>
+                </tr>
               }
-            </span>
-          </div>
-        }
-      }
-    </section>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
   </main>
 </div>
