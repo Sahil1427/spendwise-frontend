@@ -1,10 +1,11 @@
 
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, inject, computed, signal } from '@angular/core';
 import type {
   Transaction,
   TransactionType,
 } from './transaction.service';
 import type { SettingsPreferences } from './settings.service';
+import { AuthService } from './auth.service';
 
 export type BackendStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -42,6 +43,16 @@ export class BackendService {
   private readonly prefs = this.loadPrefs();
 
   /**
+   * All backend data is per-user on the server: every request carries the
+   * signed-in account name so syncs and mirrors only ever touch that
+   * user's own records (a new user starts from an empty ledger).
+   */
+  private readonly scope = inject(AuthService).dataScope();
+  private userParam(): string {
+    return `user=${encodeURIComponent(this.scope)}`;
+  }
+
+  /**
    * Empty URL means same-origin requests.
    * Example: /api/health
    */
@@ -58,7 +69,9 @@ export class BackendService {
     this.setStatus('connecting', 'Checking backend...');
 
     try {
-      const health = await this.call<{ records?: number }>('/health');
+      const health = await this.call<{ records?: number }>(
+        `/health?${this.userParam()}`
+      );
 
       this.setStatus(
         'connected',
@@ -114,7 +127,9 @@ export class BackendService {
     this.setStatus('connecting', 'Connecting to the backend...');
 
     try {
-      const health = await this.call<{ records?: number }>('/health');
+      const health = await this.call<{ records?: number }>(
+        `/health?${this.userParam()}`
+      );
 
       this.setStatus(
         'connected',
@@ -135,11 +150,11 @@ export class BackendService {
   // ------------------------------------------------------------------
 
   fetchTransactions(): Promise<Transaction[]> {
-    return this.call<Transaction[]>('/transactions');
+    return this.call<Transaction[]>(`/transactions?${this.userParam()}`);
   }
 
   fetchSettingsSettings(): Promise<SettingsPreferences | null> {
-    return this.call<SettingsPreferences>('/settings');
+    return this.call<SettingsPreferences>(`/settings?${this.userParam()}`);
   }
 
   // ------------------------------------------------------------------
@@ -147,38 +162,40 @@ export class BackendService {
   // ------------------------------------------------------------------
 
   create(tx: Transaction): Promise<Transaction> {
-    return this.call<Transaction>('/transactions', {
+    return this.call<Transaction>(`/transactions?${this.userParam()}`, {
       method: 'POST',
       body: tx,
     });
   }
 
   update(id: string, tx: Transaction): Promise<Transaction> {
-    return this.call<Transaction>(`/transactions/${id}`, {
+    return this.call<Transaction>(`/transactions/${id}?${this.userParam()}`, {
       method: 'PUT',
       body: tx,
     });
   }
 
   remove(id: string): Promise<void> {
-    return this.call<void>(`/transactions/${id}`, {
+    return this.call<void>(`/transactions/${id}?${this.userParam()}`, {
       method: 'DELETE',
     });
   }
 
   clear(): Promise<{ cleared: number }> {
-    return this.call<{ cleared: number }>('/transactions/clear', {
-      method: 'DELETE',
-    });
+    return this.call<{ cleared: number }>(
+      `/transactions/clear?${this.userParam()}`,
+      { method: 'DELETE' }
+    );
   }
 
   bulk(
     items: Transaction[],
     defaultCurrency?: string
   ): Promise<{ count: number }> {
-    const params = defaultCurrency
-      ? `?defaultCurrency=${encodeURIComponent(defaultCurrency)}`
-      : '';
+    const params = `?${this.userParam()}` +
+      (defaultCurrency
+        ? `&defaultCurrency=${encodeURIComponent(defaultCurrency)}`
+        : '');
 
     return this.call<{ count: number }>(`/transactions/bulk${params}`, {
       method: 'POST',
@@ -187,31 +204,31 @@ export class BackendService {
   }
 
   seedDemo(): Promise<{ demoRecords: number }> {
-    return this.call<{ demoRecords: number }>('/transactions/seed/demo', {
-      method: 'POST',
-      body: {},
-    });
+    return this.call<{ demoRecords: number }>(
+      `/transactions/seed/demo?${this.userParam()}`,
+      { method: 'POST', body: {} }
+    );
   }
 
   completePlanner(id: string): Promise<Transaction> {
-    return this.call<Transaction>(`/transactions/${id}/complete`, {
-      method: 'POST',
-      body: {},
-    });
+    return this.call<Transaction>(
+      `/transactions/${id}/complete?${this.userParam()}`,
+      { method: 'POST', body: {} }
+    );
   }
 
   reschedulePlanner(
     id: string,
     newDate: string
   ): Promise<Transaction> {
-    return this.call<Transaction>(`/transactions/${id}/reschedule`, {
-      method: 'PUT',
-      body: { newDate },
-    });
+    return this.call<Transaction>(
+      `/transactions/${id}/reschedule?${this.userParam()}`,
+      { method: 'PUT', body: { newDate } }
+    );
   }
 
   saveSettings(prefs: SettingsPreferences): Promise<unknown> {
-    return this.call('/settings', {
+    return this.call(`/settings?${this.userParam()}`, {
       method: 'PUT',
       body: prefs,
     });
