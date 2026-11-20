@@ -95,14 +95,16 @@ export class AuthService {
     if (!key) {
       return { ok: false, error: 'Enter a username.' };
     }
-    if (!/^[a-z0-9._-]+$/.test(key)) {
-      return {
-        ok: false,
-        error: 'Use letters, numbers, dots, dashes or underscores.',
-      };
+    // Username has no character restrictions — only that it is unique.
+    // Password: at least 5 characters, 1 capital, 1 number.
+    if (password.length < 5) {
+      return { ok: false, error: 'Password must be at least 5 characters.' };
     }
-    if (password.length < 4) {
-      return { ok: false, error: 'Password must be at least 4 characters.' };
+    if (!/[A-Z]/.test(password)) {
+      return { ok: false, error: 'Password needs at least 1 capital letter.' };
+    }
+    if (!/[0-9]/.test(password)) {
+      return { ok: false, error: 'Password needs at least 1 number.' };
     }
     if (this.recordFor(key)) {
       return { ok: false, error: 'That username already exists.' };

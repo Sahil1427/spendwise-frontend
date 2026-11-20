@@ -346,8 +346,8 @@
             name="newPassword"
             [ngModel]="newPassword"
             (ngModelChange)="newPassword = $event; addFormError.set('')"
-            placeholder="min. 4 characters" />
-          <small>At least 4 characters.</small>
+            placeholder="min. 5 characters" />
+          <small>At least 5 characters, 1 capital, 1 number.</small>
         </div>
 
         <div class="cap-field">
