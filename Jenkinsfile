@@ -8,8 +8,10 @@ pipeline {
     }
 
     environment {
-        REGISTRY          = 'localhost:5000'
-        IMAGE_NAME        = 'spendwise-frontend'
+        AWS_REGION       = 'ap-south-1'
+        REGISTRY         = '789005345642.dkr.ecr.ap-south-1.amazonaws.com'
+        IMAGE_NAME       = 'spendwise-frontend'
+
         CONTAINER_NAME    = 'spendwise-frontend'
         CANDIDATE_NAME    = 'spendwise-frontend-candidate'
         NETWORK           = 'spendwise-network'
@@ -33,6 +35,7 @@ pipeline {
                     set -e
                     docker --version
                     docker compose version
+                    aws --version
                 '''
             }
         }
@@ -55,195 +58,186 @@ pipeline {
             }
         }
 
-        stage('Push Image to Registry') {
+        stage('Push Image to ECR') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'docker-registry-credentials',
-                        usernameVariable: 'REGISTRY_USER',
-                        passwordVariable: 'REGISTRY_PASS'
-                    )
-                ]) {
-                    sh '''
-                        set +x
-                        set -e
+                sh '''
+                    set +x
+                    set -e
 
-                        trap 'docker logout "$REGISTRY" >/dev/null 2>&1 || true' EXIT
+                    trap 'docker logout "$REGISTRY" >/dev/null 2>&1 || true' EXIT
 
-                        echo "$REGISTRY_PASS" | docker login "$REGISTRY" \
-                            --username "$REGISTRY_USER" \
-                            --password-stdin
+                    echo "Authenticating with Amazon ECR..."
 
-                        docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-                    '''
-                }
+                    aws ecr get-login-password --region "$AWS_REGION" \
+                        | docker login \
+                            --username AWS \
+                            --password-stdin "$REGISTRY"
+
+                    echo "Pushing frontend image to ECR..."
+
+                    docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+                '''
             }
         }
 
         stage('Deploy and Verify') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'docker-registry-credentials',
-                        usernameVariable: 'REGISTRY_USER',
-                        passwordVariable: 'REGISTRY_PASS'
-                    )
-                ]) {
-                    sh '''
-                        set +x
-                        set -eu
+                sh '''
+                    set +x
+                    set -eu
 
-                        IMAGE="$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-                        STATE_FILE="$DEPLOY_DIR/last-successful-image"
+                    IMAGE="$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+                    STATE_FILE="$DEPLOY_DIR/last-successful-image"
 
-                        OLD_IMAGE=""
+                    OLD_IMAGE=""
 
-                        if [ -f "$STATE_FILE" ]; then
-                            OLD_IMAGE=$(cat "$STATE_FILE")
+                    if [ -f "$STATE_FILE" ]; then
+                        OLD_IMAGE=$(cat "$STATE_FILE")
+                    fi
+
+                    trap 'docker logout "$REGISTRY" >/dev/null 2>&1 || true' EXIT
+
+                    echo "Previous successful image: ${OLD_IMAGE:-none}"
+                    echo "New frontend image: $IMAGE"
+
+                    # Verify shared Docker network.
+                    docker network inspect "$NETWORK" >/dev/null 2>&1 || {
+                        echo "ERROR: Docker network $NETWORK does not exist."
+                        exit 1
+                    }
+
+                    # Ensure backend container exists.
+                    docker inspect "$BACKEND_CONTAINER" >/dev/null 2>&1 || {
+                        echo "ERROR: Backend container does not exist."
+                        exit 1
+                    }
+
+                    # Ensure backend is attached to the shared network.
+                    if ! docker inspect -f '{{json .NetworkSettings.Networks}}' \
+                        "$BACKEND_CONTAINER" | grep -q "$NETWORK"; then
+
+                        docker network connect "$NETWORK" "$BACKEND_CONTAINER"
+                    fi
+
+                    # Authenticate and pull new image from ECR.
+                    aws ecr get-login-password --region "$AWS_REGION" \
+                        | docker login \
+                            --username AWS \
+                            --password-stdin "$REGISTRY"
+
+                    docker pull "$IMAGE"
+
+                    # Remove any stale candidate.
+                    docker rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
+
+                    # Start candidate on a temporary loopback port.
+                    docker run -d \
+                        --name "$CANDIDATE_NAME" \
+                        --network "$NETWORK" \
+                        --publish "127.0.0.1:$CANDIDATE_PORT:80" \
+                        "$IMAGE"
+
+                    wait_for_health() {
+                        CHECK_URL="$1"
+                        ATTEMPT=1
+
+                        while [ "$ATTEMPT" -le 30 ]; do
+
+                            FRONTEND_STATUS=$(curl -s -o /dev/null \
+                                -w '%{http_code}' \
+                                "$CHECK_URL/" || true)
+
+                            API_RESPONSE=$(curl -fsS \
+                                "$CHECK_URL/api/health" \
+                                2>/dev/null || true)
+
+                            if [ "$FRONTEND_STATUS" = "200" ] && \
+                               echo "$API_RESPONSE" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+
+                                echo "Frontend and backend checks passed."
+                                echo "$API_RESPONSE"
+                                return 0
+                            fi
+
+                            echo "Health check attempt $ATTEMPT/30..."
+                            sleep 5
+                            ATTEMPT=$((ATTEMPT + 1))
+                        done
+
+                        return 1
+                    }
+
+                    # Verify candidate before replacing production.
+                    if ! wait_for_health "http://127.0.0.1:$CANDIDATE_PORT"; then
+                        echo "Candidate deployment failed."
+                        docker logs "$CANDIDATE_NAME" || true
+                        docker rm -f "$CANDIDATE_NAME" || true
+                        exit 1
+                    fi
+
+                    # Candidate is healthy. Replace production frontend.
+                    docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
+                    DEPLOY_SUCCESS=0
+
+                    if docker run -d \
+                        --name "$CONTAINER_NAME" \
+                        --restart unless-stopped \
+                        --network "$NETWORK" \
+                        --publish 80:80 \
+                        "$IMAGE"; then
+
+                        if wait_for_health "http://127.0.0.1"; then
+                            DEPLOY_SUCCESS=1
                         fi
+                    fi
 
-                        trap 'docker logout "$REGISTRY" >/dev/null 2>&1 || true' EXIT
+                    # Remove temporary candidate.
+                    docker rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
 
-                        echo "Previous successful image: ${OLD_IMAGE:-none}"
-                        echo "New frontend image: $IMAGE"
+                    if [ "$DEPLOY_SUCCESS" -eq 1 ]; then
 
-                        # Verify shared Docker network.
-                        docker network inspect "$NETWORK" >/dev/null 2>&1 || {
-                            echo "ERROR: Docker network $NETWORK does not exist."
-                            exit 1
-                        }
+                        printf '%s\\n' "$IMAGE" > "$STATE_FILE.tmp"
+                        mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-                        # Ensure backend is attached to the shared network.
-                        docker inspect "$BACKEND_CONTAINER" >/dev/null 2>&1 || {
-                            echo "ERROR: Backend container is not running."
-                            exit 1
-                        }
+                        echo "Frontend deployment successful: $IMAGE"
 
-                        if ! docker inspect -f '{{json .NetworkSettings.Networks}}' \
-                            "$BACKEND_CONTAINER" | grep -q "$NETWORK"; then
+                    else
 
-                            docker network connect "$NETWORK" "$BACKEND_CONTAINER"
-                        fi
-
-                        # Authenticate and pull new image.
-                        echo "$REGISTRY_PASS" | docker login "$REGISTRY" \
-                            --username "$REGISTRY_USER" \
-                            --password-stdin
-
-                        docker pull "$IMAGE"
-
-                        # Remove any stale candidate.
-                        docker rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
-
-                        # Start candidate on a temporary loopback port.
-                        docker run -d \
-                            --name "$CANDIDATE_NAME" \
-                            --network "$NETWORK" \
-                            --publish "127.0.0.1:$CANDIDATE_PORT:80" \
-                            "$IMAGE"
-
-                        wait_for_health() {
-                            CHECK_URL="$1"
-                            ATTEMPT=1
-
-                            while [ "$ATTEMPT" -le 30 ]; do
-
-                                FRONTEND_STATUS=$(curl -s -o /dev/null \
-                                    -w '%{http_code}' \
-                                    "$CHECK_URL/" || true)
-
-                                API_RESPONSE=$(curl -fsS \
-                                    "$CHECK_URL/api/health" \
-                                    2>/dev/null || true)
-
-                                if [ "$FRONTEND_STATUS" = "200" ] && \
-                                   echo "$API_RESPONSE" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
-
-                                    echo "Frontend and backend checks passed."
-                                    echo "$API_RESPONSE"
-                                    return 0
-                                fi
-
-                                echo "Health check attempt $ATTEMPT/30..."
-                                sleep 5
-                                ATTEMPT=$((ATTEMPT + 1))
-                            done
-
-                            return 1
-                        }
-
-                        # Verify candidate before replacing production.
-                        if ! wait_for_health "http://127.0.0.1:$CANDIDATE_PORT"; then
-                            echo "Candidate deployment failed."
-                            docker logs "$CANDIDATE_NAME" || true
-                            docker rm -f "$CANDIDATE_NAME" || true
-                            exit 1
-                        fi
-
-                        # Candidate is healthy. Replace production frontend.
+                        echo "Frontend production deployment failed."
+                        docker logs "$CONTAINER_NAME" || true
                         docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
-                        DEPLOY_SUCCESS=0
+                        if [ -n "$OLD_IMAGE" ]; then
 
-                        if docker run -d \
-                            --name "$CONTAINER_NAME" \
-                            --restart unless-stopped \
-                            --network "$NETWORK" \
-                            --publish 80:80 \
-                            "$IMAGE"; then
+                            echo "Rolling back to $OLD_IMAGE"
 
-                            if wait_for_health "http://127.0.0.1"; then
-                                DEPLOY_SUCCESS=1
-                            fi
-                        fi
+                            if docker run -d \
+                                --name "$CONTAINER_NAME" \
+                                --restart unless-stopped \
+                                --network "$NETWORK" \
+                                --publish 80:80 \
+                                "$OLD_IMAGE"; then
 
-                        # Remove temporary candidate.
-                        docker rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
-
-                        if [ "$DEPLOY_SUCCESS" -eq 1 ]; then
-
-                            printf '%s\\n' "$IMAGE" > "$STATE_FILE.tmp"
-                            mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-                            echo "Frontend deployment successful: $IMAGE"
-
-                        else
-
-                            echo "Frontend production deployment failed."
-                            docker logs "$CONTAINER_NAME" || true
-                            docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-
-                            if [ -n "$OLD_IMAGE" ]; then
-
-                                echo "Rolling back to $OLD_IMAGE"
-
-                                if docker run -d \
-                                    --name "$CONTAINER_NAME" \
-                                    --restart unless-stopped \
-                                    --network "$NETWORK" \
-                                    --publish 80:80 \
-                                    "$OLD_IMAGE"; then
-
-                                    if wait_for_health "http://127.0.0.1"; then
-                                        echo "Frontend rollback successful."
-                                    else
-                                        echo "CRITICAL: Frontend rollback health check failed."
-                                        docker logs "$CONTAINER_NAME" || true
-                                        exit 1
-                                    fi
+                                if wait_for_health "http://127.0.0.1"; then
+                                    echo "Frontend rollback successful."
                                 else
-                                    echo "CRITICAL: Could not start previous frontend image."
+                                    echo "CRITICAL: Frontend rollback health check failed."
+                                    docker logs "$CONTAINER_NAME" || true
                                     exit 1
                                 fi
-
                             else
-                                echo "No previous successful frontend deployment exists."
+                                echo "CRITICAL: Could not start previous frontend image."
+                                exit 1
                             fi
 
-                            exit 1
+                        else
+                            echo "No previous successful frontend deployment exists."
                         fi
-                    '''
-                }
+
+                        exit 1
+                    fi
+                '''
             }
         }
     }
